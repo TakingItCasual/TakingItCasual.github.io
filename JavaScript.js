@@ -34,7 +34,7 @@ class box{
 	}
 }
 class boxText extends box{
-	constructor(x, y, lineW, lines, extraH, offsetY = 0, centered = 0){
+	constructor(x, y, lineW, lines, extraH, offsetY = 0, centered = false){
 		super(
 			x, y, 
 			lineW*CHAR_WIDTH + CHAR_GAP*2, 
@@ -42,16 +42,16 @@ class boxText extends box{
 		);
 		this.line_string = [];
 		for(var i=0; i<lines; i++) this.line_string.push("");
-		this.lineW = lineW; // Width of the box in terms of characters
-		this.extraH = extraH;
+		this.lineW = lineW; // width of the box in terms of characters
+		this.extraH = extraH; // extra height of the box in pixels
 		this.offsetY = offsetY; // custom y-offset for text lines
-		this.centered = centered; // width of space for centered text
+		this.centered = centered; // if true, center text within box's width
 	}
 	
 	drawLine(line, color = ctx.fillStyle){
 		var offsetX = 0;
-		if(this.centered != 0){ // centers text within space of centered chars
-			offsetX = (CHAR_WIDTH/2)*(this.centered - this.line_string[line].length);
+		if(this.centered){ // centers text within box's width
+			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.line_string[line].length);
 		}
 		ctx.fillStyle = color;
 		ctx.fillText(
@@ -88,7 +88,7 @@ class corruptNode{
 			y+2, 
 			NODE_WIDTH+1, 
 			NODE_HEIGHT, CHAR_GAP*2, 
-			CHAR_GAP
+			CHAR_GAP, true
 		);
 	}
 }
@@ -122,7 +122,7 @@ class logicNode{
 			y+2, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(0, false),
-			CHAR_GAP + expandCalc(0, true), ACC_MIN.toString().length+1
+			CHAR_GAP + expandCalc(0, true), true
 		);
 		this.ACC = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
 		this.accBox.line_string[0] = "ACC";
@@ -133,7 +133,7 @@ class logicNode{
 			this.accBox.y+this.accBox.h + 1.5, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(1, false),
-			CHAR_GAP + expandCalc(1, true), ACC_MIN.toString().length+1
+			CHAR_GAP + expandCalc(1, true), true
 		);
 		this.BAK = 0;
 		this.bakBox.line_string[0] = "BAK";
@@ -144,7 +144,7 @@ class logicNode{
 			this.bakBox.y+this.bakBox.h + 1.5, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(2, false),
-			CHAR_GAP + expandCalc(2, true), ACC_MIN.toString().length+1
+			CHAR_GAP + expandCalc(2, true), true
 		);
 		this.LAST = null;
 		this.lastBox.line_string[0] = "LAST";
@@ -155,7 +155,7 @@ class logicNode{
 			this.lastBox.y+this.lastBox.h + 1.5, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(3, false),
-			CHAR_GAP + expandCalc(3, true), ACC_MIN.toString().length+1
+			CHAR_GAP + expandCalc(3, true), true
 		);
 		this.MODE = "IDLE";
 		this.modeBox.line_string[0] = "MODE";
@@ -166,7 +166,7 @@ class logicNode{
 			this.modeBox.y+this.modeBox.h + 1.5, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(4, false),
-			CHAR_GAP + expandCalc(4, true), ACC_MIN.toString().length+1
+			CHAR_GAP + expandCalc(4, true), true
 		);
 		this.IDLE = 0;
 		this.idleBox.line_string[0] = "IDLE";
