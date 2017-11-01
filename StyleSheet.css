@@ -1,0 +1,22 @@
+﻿@font-face {
+	font-family: tis-100-copy;
+	src: local("tis 100 copy"),
+		local("tis-100-copy"),
+		url(tis100copy.ttf);
+	font-weight: bold;
+}
+
+html {
+	background-color: #DDDDDD;
+	font-family: tis-100-copy;
+}
+header {
+	text-align: center;
+}
+canvas#game {
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
