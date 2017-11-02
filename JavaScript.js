@@ -111,16 +111,43 @@ class CorruptNode{
 		this.errorBox.line_string[5] = "FAILURE";
 
 		this.sideBox1 = new Box(
-
+			x+this.errorBox.w + 2,
+			y,
+			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
+			this.errorBox.h/2 + 3, 3
 		)
+		this.sideBox2 = new Box(
+			x+this.errorBox.w + 2,
+			y+this.errorBox.h/4 + 1 - 0.5,
+			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
+			this.errorBox.h/2 + 3, 3
+		)
+		this.sideBox3 = new Box(
+			x+this.errorBox.w + 2,
+			y+this.errorBox.h/2 + 1,
+			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
+			this.errorBox.h/2 + 3, 3
+		)
+
+		this.nodeBox = new Box(
+			x, y,
+			this.errorBox.w + this.sideBox1.w + 4,
+			this.errorBox.h + 4, 3
+		);
 	}
 
 	drawNode(){
+		this.nodeBox.drawBox(DARK_RED);
+
 		this.errorBox.drawBox(DARK_RED);
 		this.errorBox.drawBar(2, 0, this.errorBox.line_string[4].length, LIGHT_RED);
 		this.errorBox.drawLine(4, DARK_RED);
 		this.errorBox.drawLine(5, DARK_RED, 2);
 		this.errorBox.drawBar(7, 0, this.errorBox.line_string[4].length, LIGHT_RED);
+
+		this.sideBox1.drawBox(DARK_RED);
+		this.sideBox2.drawBox(DARK_RED);
+		this.sideBox3.drawBox(DARK_RED);
 	}
 }
 class LogicNode{
@@ -299,7 +326,8 @@ for(var i=0; i<node1.codeBox.line_string.length-1; i++){
 node1.codeBox.line_string[NODE_HEIGHT-1] = "1: mov r#ght, right"
 node1.current_line = 0;
 
-var node2 = new CorruptNode(100, 350);
+var node2 = new CorruptNode(100, 300);
+var node3 = new CorruptNode(315, 100);
 
 function gameLoop() {
 
@@ -314,6 +342,7 @@ function gameLoop() {
 	
 	node1.drawNode();
 	node2.drawNode();
+	node3.drawNode();
 	
 	requestAnimationFrame(gameLoop);
 }
