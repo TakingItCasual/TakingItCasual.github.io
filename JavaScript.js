@@ -101,20 +101,20 @@ class BoxText extends Box{
 
 class CorruptNode{
 	constructor(x, y){
-		this.errorBox = new BoxText(
+		this.descBox = new BoxText(
 			x+2, 
 			y+2, 
 			NODE_WIDTH+1, 
 			NODE_HEIGHT, CHAR_GAP*2, 
 			CHAR_GAP, true
 		);
-		this.errorBox.line_string[4] = "COMMUNICATION";
-		this.errorBox.line_string[5] = "FAILURE";
+		this.descBox.line_string[4] = "COMMUNICATION";
+		this.descBox.line_string[5] = "FAILURE";
 		
-		var remainder = (this.errorBox.h-2)%4;
-		var sideBoxX = x+this.errorBox.w + 2;
+		var remainder = (this.descBox.h-2)%4;
+		var sideBoxX = x+this.descBox.w + 2;
 		var sideBoxW = (ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4;
-		var sideBoxH = (this.errorBox.h - remainder)/2 + 3;
+		var sideBoxH = (this.descBox.h - remainder)/2 + 3;
 		function expandCalc(boxNum, y_pos){
 			if(remainder == 0) return 0;
 			if(boxNum == 1){
@@ -141,8 +141,7 @@ class CorruptNode{
 		)
 		this.sideBox2 = new Box(
 			sideBoxX,
-			y+this.errorBox.h/4 + 1 + expandCalc(2, true) - 
-				0.5-(remainder*0.25),
+			y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
 			sideBoxW,
 			sideBoxH + expandCalc(2, false), 3
 		)
@@ -155,24 +154,24 @@ class CorruptNode{
 
 		this.nodeBox = new Box(
 			x, y,
-			this.errorBox.w + this.sideBox1.w + 4,
-			this.errorBox.h + 4, 3
+			this.descBox.w + this.sideBox1.w + 4,
+			this.descBox.h + 4, 3
 		);
 	}
 
 	drawNode(){
 		this.nodeBox.drawBox(DARK_RED);
 
-		this.errorBox.drawBox(DARK_RED);
-		this.errorBox.drawBar(2, 0, this.errorBox.line_string[4].length, LIGHT_RED);
-		this.errorBox.drawLine(4, DARK_RED);
-		this.errorBox.drawLine(5, DARK_RED, 2);
-		this.errorBox.drawBar(7, 0, this.errorBox.line_string[4].length, LIGHT_RED);
+		this.descBox.drawBox(DARK_RED);
+		this.descBox.drawBar(2, 0, this.descBox.line_string[4].length, LIGHT_RED);
+		this.descBox.drawLine(4, DARK_RED);
+		this.descBox.drawLine(5, DARK_RED, 2);
+		this.descBox.drawBar(7, 0, this.descBox.line_string[4].length, LIGHT_RED);
 
 		this.sideBox1.drawBox(DARK_RED);
 		this.sideBox2.drawBox(DARK_RED);
 		this.sideBox3.drawBox(DARK_RED);
-	} // see expand.txt to see the desired I/O behavior
+	}
 }
 class LogicNode{
 	constructor(x, y){
@@ -254,7 +253,7 @@ class LogicNode{
 		this.idleBox.line_string[0] = "IDLE";
 
 		this.nodeBox = new Box(
-			x, y, this.codeBox.w+this.accBox.w+6, this.codeBox.h+4
+			x, y, this.codeBox.w+this.accBox.w + 6, this.codeBox.h + 4
 		);
 	}
 	
@@ -338,7 +337,45 @@ class LogicNode{
 }
 class StackMemNode{
 	constructor(x, y){
+		this.descBox = new BoxText(
+			x+2, 
+			y+2, 
+			NODE_WIDTH+1, 
+			NODE_HEIGHT, CHAR_GAP*2, 
+			CHAR_GAP, true
+		);
+		this.descBox.line_string[7] = "STACK MEMORY NODE";
 		
+		this.memoryBox = new BoxText(
+			x+this.descBox.w+4, 
+			y+2, 
+			ACC_MIN.toString().length+1, 
+			NODE_HEIGHT, CHAR_GAP*2,
+			CHAR_GAP, true
+		);
+		this.memoryBox.line_string[0] = "254";
+		this.memoryBox.line_string[1] = "498";
+		this.memoryBox.line_string[2] = "782";
+		
+		this.nodeBox = new Box(
+			x, y, this.descBox.w+this.memoryBox.w + 6, this.descBox.h + 4
+		);
+	}
+	
+	drawNode(){
+		this.nodeBox.drawBox(WHITE);
+		
+		this.descBox.drawBox(WHITE);
+		this.descBox.drawBar(5, 0, this.descBox.line_string[7].length, WHITE);
+		this.descBox.drawLine(7, WHITE);
+		this.descBox.drawBar(9, 0, this.descBox.line_string[7].length, WHITE);
+		
+		this.memoryBox.drawBox(WHITE);
+		// prints out each value in memory
+		for(var i=0; i<NODE_HEIGHT; i++){ 
+			if(!this.memoryBox.line_string[i]) continue;
+			this.memoryBox.drawLine(i, WHITE);
+		}
 	}
 }
 
@@ -357,6 +394,7 @@ node1.current_line = 0;
 
 var node2 = new CorruptNode(100, 300);
 var node3 = new CorruptNode(315, 100);
+var node4 = new StackMemNode(315, 300);
 
 function gameLoop() {
 
@@ -372,6 +410,7 @@ function gameLoop() {
 	node1.drawNode();
 	node2.drawNode();
 	node3.drawNode();
+	node4.drawNode();
 	
 	requestAnimationFrame(gameLoop);
 }
