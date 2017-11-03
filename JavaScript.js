@@ -51,6 +51,7 @@ class BoxText extends Box{
 		this.centered = centered; // if true, center text within box's width
 	}
 	
+	// draws text from line_string to the screen
 	drawLine(line, color = ctx.fillStyle, extraY = 0){ // extraY used for "FAILURE"
 		var offsetX = 0;
 		if(this.centered){ // centers text within box's width
@@ -109,24 +110,47 @@ class CorruptNode{
 		);
 		this.errorBox.line_string[4] = "COMMUNICATION";
 		this.errorBox.line_string[5] = "FAILURE";
-
+		
+		var remainder = (this.errorBox.h-2)%4;
+		var sideBoxX = x+this.errorBox.w + 2;
+		var sideBoxW = (ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4;
+		var sideBoxH = (this.errorBox.h - remainder)/2 + 3;
+		function expandCalc(boxNum, y_pos){
+			if(remainder == 0) return 0;
+			if(boxNum == 1){
+				if(remainder == 3) return 2;
+				return remainder;
+			}else if(boxNum == 2){
+				if(y_pos) return 1;
+				return remainder - 1;
+			}else{
+				if(y_pos){
+					if(remainder == 3) return 2;
+					return remainder;
+				}
+				if(remainder == 3) return 1;
+			}
+			return 0;
+		} // see expandCorrupt.txt to see the desired I/O behavior
+		
 		this.sideBox1 = new Box(
-			x+this.errorBox.w + 2,
+			sideBoxX,
 			y,
-			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
-			this.errorBox.h/2 + 3, 3
+			sideBoxW,
+			sideBoxH + expandCalc(1, false), 3
 		)
 		this.sideBox2 = new Box(
-			x+this.errorBox.w + 2,
-			y+this.errorBox.h/4 + 1 - 0.5,
-			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
-			this.errorBox.h/2 + 3, 3
+			sideBoxX,
+			y+this.errorBox.h/4 + 1 + expandCalc(2, true) - 
+				0.5-(remainder*0.25),
+			sideBoxW,
+			sideBoxH + expandCalc(2, false), 3
 		)
 		this.sideBox3 = new Box(
-			x+this.errorBox.w + 2,
-			y+this.errorBox.h/2 + 1,
-			(ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4,
-			this.errorBox.h/2 + 3, 3
+			sideBoxX,
+			y + this.sideBox1.h,
+			sideBoxW,
+			sideBoxH + expandCalc(3, false), 3
 		)
 
 		this.nodeBox = new Box(
@@ -148,7 +172,7 @@ class CorruptNode{
 		this.sideBox1.drawBox(DARK_RED);
 		this.sideBox2.drawBox(DARK_RED);
 		this.sideBox3.drawBox(DARK_RED);
-	}
+	} // see expand.txt to see the desired I/O behavior
 }
 class LogicNode{
 	constructor(x, y){
@@ -310,6 +334,11 @@ class LogicNode{
 		this.LAST = null;
 		this.MODE = "IDLE";
 		this.IDLE = 0;
+	}
+}
+class StackMemNode{
+	constructor(x, y){
+		
 	}
 }
 

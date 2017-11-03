@@ -1,0 +1,33 @@
+remainder of 0:
+	box1.h + 0
+
+	box2.y + 0
+	box2.h + 0
+
+	box3.y + 0
+	box3.h + 0
+remainder of 1:
+	box1.h + 1
+
+	box2.y + 1
+	box2.h
+
+	box3.y + 1
+	box3.h
+remainder of 2:
+	box1.h + 2
+
+	box2.y + 1
+	box2.h + 1
+
+	box3.y + 2
+	box3.h
+remainder 3:
+	box1.h + 2
+
+	box2.y + 1
+	box2.h + 2
+
+	box3.y + 2
+	box3.h + 1
+
