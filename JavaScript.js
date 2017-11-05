@@ -9,6 +9,7 @@ var LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
 var INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
 var WHITE = "#C8C8C8"; // Used for the boxes and code
+var FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
 var TRUE_WHITE = "#FFFFFF"; // White
 var BLACK = "#000000"; // Black
 var DESC_WHITE = "#B4B4B4" // Used for text not in a node
@@ -47,23 +48,37 @@ class BoxText extends Box{
 			lines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
 			borderW
 		);
-		this.line_string = [];
-		for(var i=0; i<lines; i++) this.line_string.push("");
 		this.lineW = lineW; // Width of the box in terms of characters
 		this.extraH = extraH; // Extra height of the box in pixels
 		this.offsetY = offsetY; // Custom y-offset for text lines in pixels
 		this.centered = centered; // If true, center text within box's width
+
+		// My attempt at a private variable. Seems to work
+		var line_string = [];
+		for(var i=0; i<lines; i++) line_string.push("");
+		this.getString = function(index){
+			if(index < 0 || index > line_string.length-1) return "";
+			return line_string[index];
+		}
+		this.setString = function(index, string){
+			if(index < 0 || index > line_string.length-1) return;
+			line_string[index] = string;
+		}
+		this.stringLength = function(index){
+			if(index < 0 || index > line_string.length-1) return 0;
+			return line_string[index].length;
+		}
 	}
 	
 	// Draws text from line_string to the canvas
 	drawLine(line, color = ctx.fillStyle, extraY = 0){ // extraY used for "FAILURE"
 		var offsetX = 0;
 		if(this.centered){ // Centers text within box's width
-			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.line_string[line].length);
+			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.stringLength(line));
 		}
 		ctx.fillStyle = color;
 		ctx.fillText(
-			this.line_string[line], 
+			this.getString(line), 
 			this.x+CHAR_GAP + offsetX + 0.5, 
 			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT + 0.5
 		);
@@ -82,64 +97,90 @@ class BoxText extends Box{
 			LINE_HEIGHT
 		);
 	}
-
-	setString(index, string){
-		if(index < 0 || index > this.line_string.length-1) return "";
-		this.line_string[index] = string;
-	}
-	stringLength(index){
-		if(index < 0 || index > this.line_string.length-1) return 0;
-		return this.line_string[index].length;
-	}
 }
 
 // Used for when the user highlights text in their code
 class Selection{
 	constructor(){
-		this.start = { line: -1, char: 0 };
-		this.end = { line: 0, char: 0 };
+		this.nodeIndex = 0; // Which logicNode is currently focused on
+		this.focus = { line: -1, char: 0 }; // Where the user is typing
+		this.start = { line: -1, char: 0 }; // Start of selection
+		this.end = { line: -1, char: 0 }; // End of selection
 	}
 
-	get active(){
-		if(this.start.line == -1) return false;
-		return true;
+	lineSelected(line){
+		if(this.start.line <= line && this.end.line >= line) return true;
+		return false;
 	}
 
 	reset(){
-		this.start.line = -1;
+		this.nodeIndex = 0;
+		this.focus = { line: -1, char: 0 };
+		this.start = { line: -1, char: 0 };
+		this.end = { line: -1, char: 0 };
 	}
 }
-// Can divide a line into different colors to accomodate for comments and selection
+// Can divide a line into different colors for comments and selection
 class EditBoxText extends BoxText{
 	constructor(x, y, lineW, lines, extraH, offsetY){
 		super(x, y, lineW, lines, extraH, offsetY, false, 1);
-		this.currentLine = -1; // Indicates currently executing line 
-		this.select = new Selection();
-		this.typeFocus = { line: -1, char: 0 }; // Where the user is typing
+		this.currentLine = -1; // Indicates currently executing line
+		this.executable = true; // True if the current line was just reached
 	}
 
-	// Draws text from all line_strings to the canvas
-	drawAllLines(){
-		for(var i=0; i<NODE_HEIGHT; i++){ 
-			if(!this.line_string[i]) continue;
-			if(this.currentLine == i){
-				ctx.fillStyle = BLACK;
-			}else{
-				ctx.fillStyle = WHITE;
+	// Draws bars for executing lines or selected text
+	drawAllBars(select){
+		if(this.currentLine != -1){ // Only false before the program is started
+			(this.executable) ? ctx.fillStyle = ACTIVE_FOCUS : 
+				ctx.fillStyle = WAIT_FOCUS;
+			// Draws bar under currently executing line
+			this.drawBar(
+				this.currentLine, 0, this.lineW, ctx.fillStyle, 3, 1
+			);
+		}else{ // Code can only be selected before the program is run
+			for(var i=0; i<NODE_HEIGHT; i++){
+				if(select.lineSelected(i)){
+					var start = 0;
+					(select.start.line < i) ? start = 0 : 
+						start = select.start.char;
+
+					var end = 0;
+					(select.end.line > i) ? end = this.stringLength(i) : 
+						end = select.end.char;
+
+					this.drawBar(i, start, end, SELECT_GRAY);
+				}
 			}
-			var commentStart = this.line_string[i].indexOf("#");
+		}
+	}
+	// Draws text from all line_strings to the canvas, and the blinking thingy
+	drawAllLines(select){
+		for(var i=0; i<NODE_HEIGHT; i++){ 
+			if(!this.getString(i)) continue;
+			(this.currentLine == i) ? ctx.fillStyle = BLACK : 
+				ctx.fillStyle = WHITE;
+			var commentStart = this.getString(i).indexOf("#");
 			if(commentStart == -1 || this.currentLine == i){
 				this.drawLine(i);
 			}else{
 				this.drawLineWComment(i, commentStart);
 			}
 		}
+		if(select.focus.line != -1){
+			var time = new Date();
+			time = time.getTime() % 800;
+			if(time > 400){ // Get the blinking thingy to blink every 800ms
+				this.drawBar(
+					select.focus.line, select.focus.char, 
+					select.focus.char+1, FOCUS_WHITE
+				);
+			}
+		}
 	}
-
 	// Draws lines containing comments, using another color for the comment
 	drawLineWComment(line, split){
-		var before_string = this.line_string[line].substr(0, split);
-		var after_string = this.line_string[line].substr(split);
+		var before_string = this.getString(line).substr(0, split);
+		var after_string = this.getString(line).substr(split);
 		
 		ctx.fillStyle = WHITE;
 		ctx.fillText(
@@ -240,7 +281,6 @@ class LogicNode{
 			NODE_HEIGHT, CHAR_GAP*2, 
 			CHAR_GAP
 		);
-		this.executable = true; // True if the current line was just reached
 		
 		// Expands the five boxes next to the codeBox to match its height
 		var expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
@@ -314,23 +354,13 @@ class LogicNode{
 		);
 	}
 	
-	drawNode(){
+	drawNode(select){
 		this.nodeBox.drawBox(WHITE);
 		
+		// Draws the editable codeBox and all relevant bars
 		this.codeBox.drawBox(WHITE);
-		// Draws bar indicating currently executing line
-		if(this.codeBox.currentLine != -1){ // Only false before the program is started
-			if(this.executable){
-				ctx.fillStyle = ACTIVE_FOCUS;
-			}else{
-				ctx.fillStyle = WAIT_FOCUS;
-			}
-			this.codeBox.drawBar(
-				this.codeBox.currentLine, 0, this.codeBox.lineW, ctx.fillStyle, 3, 1
-			);
-		}
-		this.codeBox.drawAllLines(); // Prints out all of codeBox's lines
-
+		this.codeBox.drawAllBars(select);
+		this.codeBox.drawAllLines(select);
 
 		// Draws the ACC box
 		this.accBox.drawBox(WHITE);
@@ -418,7 +448,7 @@ class StackMemNode{
 		this.memoryBox.drawBox(WHITE);
 		// Prints out each value in memory
 		for(var i=0; i<NODE_HEIGHT; i++){ 
-			if(!this.memoryBox.line_string[i]) continue;
+			if(!this.memoryBox.getString(i)) continue;
 			this.memoryBox.drawLine(i, WHITE);
 		}
 	}
@@ -437,9 +467,7 @@ function  getMousePos(canvas, evt) {
 
 var canvas = document.getElementById("game");
 var ctx = canvas.getContext("2d");
-var mPos = {
-	x: 0, y: 0
-}
+var mPos = { x: 0, y: 0 }
 ctx.strokeStyle = TRUE_WHITE;
 ctx.imageSmoothingEnabled = false;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
@@ -448,15 +476,30 @@ canvas.addEventListener('mousemove', function(evt) {
 	mPos = getMousePos(canvas, evt);
 }, false);
 
+var noSelect = new Selection(); // Only 1 node can be selected at a time
+var select = new Selection();
+select.focus.line = 1;
+select.focus.char = 3;
+select.start.line = 2;
+select.start.char = 2;
+select.end.line = 4;
+select.end.char = 4;
+
 var node1 = new LogicNode(100, 100);
 for(var i=0; i<NODE_HEIGHT-1; i++){
 	node1.codeBox.setString(i, "testing " + i);
 }
 node1.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
-node1.codeBox.currentLine = NODE_HEIGHT-1;
 
 var node2 = new CorruptNode(100, 300);
-var node3 = new CorruptNode(315, 100);
+
+var node3 = new LogicNode(315, 100);
+for(var i=0; i<NODE_HEIGHT; i++){
+	node3.codeBox.setString(i, "testing " + (i + NODE_HEIGHT - 1));
+}
+node3.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+node3.codeBox.currentLine = NODE_HEIGHT-1;
+
 var node4 = new StackMemNode(315, 300);
 
 function gameLoop() {
@@ -469,15 +512,15 @@ function gameLoop() {
 	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 50, 50);
 	ctx.fillText("1234567890", 50, 62); 
 	ctx.fillText("()<>-+!_=.,?", 50, 74);
-	
-	node1.drawNode();
+
+	node1.drawNode(select);
 	node2.drawNode();
-	node3.drawNode();
+	node3.drawNode(noSelect);
 	node4.drawNode();
 
     ctx.fillStyle = WHITE;
     ctx.fillRect(mPos.x, mPos.y, 5, 5);
-	
+
 	requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
