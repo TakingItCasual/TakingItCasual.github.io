@@ -22,13 +22,13 @@ var DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
 var LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
 var MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
-var ALLOWED_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#%()+,-./:<=>?[\\]_";
+var ALLOWED_CHARS = new RegExp("^[\x20-\x7E]*$"); // ASCII characters
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
 	constructor(x, y, w, h, borderW=1){
-		this.x = x + ((borderW-1)/2) + 0.5; // x-pos of box's top left
-		this.y = y + ((borderW-1)/2) + 0.5; // y-pos of box's top left
+		this.x = x + ((borderW-1)/2); // x-pos of box's top left
+		this.y = y + ((borderW-1)/2); // y-pos of box's top left
 		this.w = w - (borderW - 1); // Box's width
 		this.h = h - (borderW - 1); // Box's height
 		this.borderW = borderW; // Width of box's border
@@ -37,7 +37,7 @@ class Box{
 	drawBox(color = ctx.strokeStyle){
 		ctx.strokeStyle = color;
 		ctx.lineWidth = this.borderW;
-		ctx.strokeRect(this.x, this.y, this.w, this.h);
+		ctx.strokeRect(this.x-0.5, this.y-0.5, this.w, this.h);
 		ctx.lineWidth = 1;
 	}
 }
@@ -55,7 +55,7 @@ class BoxText extends Box{
 		this.offsetY = offsetY; // Custom y-offset for text lines in pixels
 		this.centered = centered; // If true, center text within box's width
 
-		// My attempt at a private variable. Seems to work
+		// Why make it private? Because I was experimenting. Too lazy to revert
 		var line_string = [];
 		for(var i=0; i<lines; i++) line_string.push("");
 		this.getString = function(index){
@@ -81,11 +81,11 @@ class BoxText extends Box{
 		ctx.fillStyle = color;
 		ctx.fillText(
 			this.getString(line), 
-			this.x+CHAR_GAP + offsetX + 0.5, 
-			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT + 0.5
+			this.x+CHAR_GAP + offsetX, 
+			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
 		);
 	}
-	// Used to draw those solid color bars
+	// Used to draw those solid color boxes (and bars)
 	drawBar(line, startChar, endChar, barColor, extraStart=0, extraEnd=0){
 		var offsetX = 0;
 		if(this.centered){ // Centers text within box's width
@@ -93,9 +93,9 @@ class BoxText extends Box{
 		}
 		ctx.fillStyle = barColor;
 		ctx.fillRect(
-			this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart + 0.5, 
+			this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart, 
 			this.y+this.offsetY+CHAR_GAP + (line)*LINE_HEIGHT - 
-				Math.floor(CHAR_GAP/2) + 0.5, 
+				Math.floor(CHAR_GAP/2), 
 			(endChar-startChar)*CHAR_WIDTH + extraStart+extraEnd, 
 			LINE_HEIGHT
 		);
@@ -325,8 +325,8 @@ class BoxCode extends BoxText{
 			ctx.fillStyle = string_color[i];
 			ctx.fillText(
 				string_parts[i], 
-				this.x+CHAR_GAP + CHAR_WIDTH*string_start[i] + 0.5, 
-				this.y+this.offsetY + (line+1)*LINE_HEIGHT + 0.5
+				this.x+CHAR_GAP + CHAR_WIDTH*string_start[i], 
+				this.y+this.offsetY + (line+1)*LINE_HEIGHT
 			);
 		}
 	}
@@ -334,6 +334,8 @@ class BoxCode extends BoxText{
 
 class CorruptNode{
 	constructor(x, y){
+		this.nodeType = 0;
+
 		this.descBox = new BoxText(
 			x+2, 
 			y+2, 
@@ -408,6 +410,8 @@ class CorruptNode{
 }
 class LogicNode{
 	constructor(x, y){
+		this.nodeType = 1;
+
 		this.codeBox = new BoxCode(
 			x+2, 
 			y+2, 
@@ -442,7 +446,7 @@ class LogicNode{
 		// Initialize the BAK box
 		this.bakBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.accBox.y+this.accBox.h + 1.5, 
+			this.accBox.y+this.accBox.h + 2, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(1, false),
 			CHAR_GAP + expandCalc(1, true), true
@@ -453,7 +457,7 @@ class LogicNode{
 		// Initialize the LAST box
 		this.lastBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.bakBox.y+this.bakBox.h + 1.5, 
+			this.bakBox.y+this.bakBox.h + 2, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(2, false),
 			CHAR_GAP + expandCalc(2, true), true
@@ -464,7 +468,7 @@ class LogicNode{
 		// Initialize the MODE box
 		this.modeBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.lastBox.y+this.lastBox.h + 1.5, 
+			this.lastBox.y+this.lastBox.h + 2, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(3, false),
 			CHAR_GAP + expandCalc(3, true), true
@@ -475,7 +479,7 @@ class LogicNode{
 		// Initialize the IDLE box
 		this.idleBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.modeBox.y+this.modeBox.h + 1.5, 
+			this.modeBox.y+this.modeBox.h + 2, 
 			ACC_MIN.toString().length+1, 
 			2, CHAR_GAP*2 + expandCalc(4, false),
 			CHAR_GAP + expandCalc(4, true), true
@@ -545,6 +549,8 @@ class LogicNode{
 }
 class StackMemNode{
 	constructor(x, y){
+		this.nodeType = 2;
+
 		this.descBox = new BoxText(
 			x+2, 
 			y+2, 
@@ -584,6 +590,50 @@ class StackMemNode{
 	}
 }
 
+class NodeManager{
+	constructor(nodeData){
+		this.nodesH = nodeData[0]; // Number of nodes horizontal (width)
+		this.nodesV = nodeData[1]; // Number of nodes vertical (height)
+
+		this.noSelect = new Selection();
+		this.select = new Selection();
+		this.select.focus.line = 1;
+		this.select.focus.char = 3;
+		this.select.start.line = 2;
+		this.select.start.char = 2;
+		this.select.end.line = 2;
+		this.select.end.char = 3;
+
+		this.nodes = [];
+		var nodeX = 355;
+		var nodeY = 53;
+		for(var i=0; i<this.nodesH; i++){
+			nodeX = 355;
+			for(var i2=0; i2<this.nodesV; i2++){
+				if(nodeData[i*this.nodesH + i2 + 2] == 0){
+					this.nodes.push(new CorruptNode(nodeX, nodeY));
+				}else if(nodeData[i*this.nodesH + i2 + 2] == 1){
+					this.nodes.push(new LogicNode(nodeX, nodeY));
+				}else if(nodeData[i*this.nodesH + i2 + 2] == 2){
+					this.nodes.push(new StackMemNode(nodeX, nodeY));
+				}
+				nodeX += this.nodes[0].nodeBox.w + 45;
+			}
+			nodeY += this.nodes[0].nodeBox.h + 39;
+		}
+	}
+
+	drawNodes(){
+		for(var i=0; i<this.nodes.length; i++){
+			if(this.nodes[i].nodeType == 1){
+				this.nodes[i].drawNode(this.noSelect);
+			}else{
+				this.nodes[i].drawNode();
+			}
+		}
+	}
+}
+
 function  getMousePos(canvas, evt) {
 	var rect = canvas.getBoundingClientRect();
 	var scaleX = canvas.width / rect.width;
@@ -606,35 +656,30 @@ ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 canvas.addEventListener('mousemove', function(evt) {
 	mPos = getMousePos(canvas, evt);
 }, false);
+canvas.addEventListener('mouseup', function(evt) {
+	mPos = getMousePos(canvas, evt);
+}, false);
 
-var noSelect = new Selection(); // Only 1 node can be selected at a time
-var select = new Selection();
-select.focus.line = 1;
-select.focus.char = 3;
-select.start.line = 2;
-select.start.char = 2;
-select.end.line = 2;
-select.end.char = 4;
+var nodeManager = new NodeManager([
+	3, 4, 
+	1, 1, 2, 1, 
+	1, 1, 1, 1, 
+	1, 1, 1, 1
+]);
 
-var node1 = new LogicNode(100, 100);
 for(var i=0; i<NODE_HEIGHT-1; i++){
-	node1.codeBox.setString(i, "testing " + i);
+	nodeManager.nodes[0].codeBox.setString(i, "testing " + i);
 }
-node1.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+nodeManager.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
 
-var node2 = new CorruptNode(100, 300);
-
-var node3 = new LogicNode(315, 100);
-for(var i=0; i<NODE_HEIGHT; i++){
-	node3.codeBox.setString(i, "testing " + (i + NODE_HEIGHT - 1));
+for(var i=0; i<NODE_HEIGHT-1; i++){
+	nodeManager.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
-node3.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
-node3.codeBox.currentLine = NODE_HEIGHT-1;
+nodeManager.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
 
-var node4 = new StackMemNode(315, 300);
-node4.memoryBox.setString(0, "254");
-node4.memoryBox.setString(1, "498");
-node4.memoryBox.setString(2, "782");
+nodeManager.nodes[2].memoryBox.setString(0, "254");
+nodeManager.nodes[2].memoryBox.setString(1, "498");
+nodeManager.nodes[2].memoryBox.setString(2, "782");
 
 function gameLoop() {
 	
@@ -644,14 +689,16 @@ function gameLoop() {
 	ctx.fill();
 
 	ctx.fillStyle = TRUE_WHITE;
-	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 50, 50);
-	ctx.fillText("1234567890", 50, 62); 
-	ctx.fillText("!#%()+,-./:<=>?[\\]_", 50, 74);
+	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
+	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT); 
+	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
 
-	node1.drawNode(select);
-	node2.drawNode();
-	node3.drawNode(noSelect);
-	node4.drawNode();
+	//node1.drawNode(select);
+	//node2.drawNode();
+	//node3.drawNode(noSelect);
+	//node4.drawNode();
+
+	nodeManager.drawNodes();
 
 	ctx.fillStyle = WHITE;
 	ctx.fillRect(mPos.x, mPos.y, 5, 5);
