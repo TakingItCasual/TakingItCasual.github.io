@@ -332,6 +332,7 @@ class BoxCode extends BoxText{
 	}
 }
 
+// Red "Communication Error" node. No functionality
 class CorruptNode{
 	constructor(x, y){
 		this.nodeType = 0;
@@ -408,6 +409,7 @@ class CorruptNode{
 		this.sideBox3.drawBox(DARK_RED);
 	}
 }
+// Node within which the user writes their code
 class LogicNode{
 	constructor(x, y){
 		this.nodeType = 1;
@@ -440,7 +442,7 @@ class LogicNode{
 			2, CHAR_GAP*2 + expandCalc(0, false),
 			CHAR_GAP + expandCalc(0, true), true
 		);
-		this.ACC = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+		this.ACC = 0;
 		this.accBox.setString(0, "ACC");
 		
 		// Initialize the BAK box
@@ -547,6 +549,7 @@ class LogicNode{
 		this.IDLE = 0;
 	}
 }
+// Stack memory node. Stores values given to it, which can then be retrieved
 class StackMemNode{
 	constructor(x, y){
 		this.nodeType = 2;
@@ -577,9 +580,9 @@ class StackMemNode{
 		this.nodeBox.drawBox(WHITE);
 		
 		this.descBox.drawBox(WHITE);
-		this.descBox.drawBar(5, 0, this.descBox.stringLength(7), WHITE);
+		this.descBox.drawBar(5, 0, this.descBox.stringLength(7), TRUE_WHITE);
 		this.descBox.drawLine(7, WHITE);
-		this.descBox.drawBar(9, 0, this.descBox.stringLength(7), WHITE);
+		this.descBox.drawBar(9, 0, this.descBox.stringLength(7), TRUE_WHITE);
 		
 		this.memoryBox.drawBox(WHITE);
 		// Prints out each value in memory
@@ -590,11 +593,13 @@ class StackMemNode{
 	}
 }
 
+// Holds all nodes. Coordinates node communication and mouse selection
 class NodeManager{
 	constructor(nodeData){
-		this.nodesH = nodeData[0]; // Number of nodes horizontal (width)
-		this.nodesV = nodeData[1]; // Number of nodes vertical (height)
+		this.nodesH = nodeData[0]; // Number of nodes horizontally (width)
+		this.nodesV = nodeData[1]; // Number of nodes vertically (height)
 
+		this.selectedNode = -1;
 		this.noSelect = new Selection();
 		this.select = new Selection();
 		this.select.focus.line = 1;
@@ -605,11 +610,10 @@ class NodeManager{
 		this.select.end.char = 3;
 
 		this.nodes = [];
-		var nodeX = 355;
 		var nodeY = 53;
-		for(var i=0; i<this.nodesH; i++){
-			nodeX = 355;
-			for(var i2=0; i2<this.nodesV; i2++){
+		for(var i=0; i<this.nodesV; i++){
+			var nodeX = 355;
+			for(var i2=0; i2<this.nodesH; i2++){
 				if(nodeData[i*this.nodesH + i2 + 2] == 0){
 					this.nodes.push(new CorruptNode(nodeX, nodeY));
 				}else if(nodeData[i*this.nodesH + i2 + 2] == 1){
@@ -617,10 +621,14 @@ class NodeManager{
 				}else if(nodeData[i*this.nodesH + i2 + 2] == 2){
 					this.nodes.push(new StackMemNode(nodeX, nodeY));
 				}
-				nodeX += this.nodes[0].nodeBox.w + 45;
+				nodeX += this.nodes[0].nodeBox.w + 46;
 			}
-			nodeY += this.nodes[0].nodeBox.h + 39;
+			nodeY += this.nodes[0].nodeBox.h + 40;
 		}
+	}
+
+	setSelection(mPos, end_start){
+
 	}
 
 	drawNodes(){
@@ -634,6 +642,21 @@ class NodeManager{
 	}
 }
 
+var canvas = document.getElementById("game");
+var ctx = canvas.getContext("2d");
+
+ctx.strokeStyle = TRUE_WHITE;
+ctx.imageSmoothingEnabled = false;
+ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
+
+var nodeManager = new NodeManager([
+	4, 3, 
+	1, 1, 2, 0, 
+	0, 1, 1, 1, 
+	1, 2, 0, 1
+]);
+
+// Source: https://stackoverflow.com/a/17130415
 function  getMousePos(canvas, evt) {
 	var rect = canvas.getBoundingClientRect();
 	var scaleX = canvas.width / rect.width;
@@ -645,27 +668,16 @@ function  getMousePos(canvas, evt) {
 	}
 }
 
-var canvas = document.getElementById("game");
-var ctx = canvas.getContext("2d");
-
 var mPos = { x: 0, y: 0 }
-ctx.strokeStyle = TRUE_WHITE;
-ctx.imageSmoothingEnabled = false;
-ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
-
-canvas.addEventListener('mousemove', function(evt) {
+canvas.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
 }, false);
-canvas.addEventListener('mouseup', function(evt) {
-	mPos = getMousePos(canvas, evt);
+canvas.addEventListener("mousedown", function(evt) {
+	nodeManager.setSelection(mPos, false);
 }, false);
-
-var nodeManager = new NodeManager([
-	3, 4, 
-	1, 1, 2, 1, 
-	1, 1, 1, 1, 
-	1, 1, 1, 1
-]);
+canvas.addEventListener("mouseup", function(evt) {
+	nodeManager.setSelection(mPos, true);
+}, false);
 
 for(var i=0; i<NODE_HEIGHT-1; i++){
 	nodeManager.nodes[0].codeBox.setString(i, "testing " + i);
@@ -676,6 +688,7 @@ for(var i=0; i<NODE_HEIGHT-1; i++){
 	nodeManager.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
 nodeManager.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+nodeManager.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
 nodeManager.nodes[2].memoryBox.setString(0, "254");
 nodeManager.nodes[2].memoryBox.setString(1, "498");
@@ -690,13 +703,8 @@ function gameLoop() {
 
 	ctx.fillStyle = TRUE_WHITE;
 	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
-	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT); 
+	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
 	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
-
-	//node1.drawNode(select);
-	//node2.drawNode();
-	//node3.drawNode(noSelect);
-	//node4.drawNode();
 
 	nodeManager.drawNodes();
 
