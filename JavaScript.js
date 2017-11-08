@@ -22,7 +22,7 @@ var DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
 var LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
 var MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
-var ALLOWED_CHARS = new RegExp("^[\x20-\x7E]*$"); // ASCII characters
+var ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
@@ -410,7 +410,7 @@ class CorruptNode{
 	}
 }
 // Node within which the user writes their code
-class LogicNode{
+class ComputeNode{
 	constructor(x, y){
 		this.nodeType = 1;
 
@@ -594,14 +594,14 @@ class StackMemNode{
 }
 
 // Holds all nodes. Coordinates node communication and mouse selection
-class NodeManager{
-	constructor(nodeData){
-		this.nodesH = nodeData[0]; // Number of nodes horizontally (width)
-		this.nodesV = nodeData[1]; // Number of nodes vertically (height)
+class NodeContainer{
+	constructor(nodesW, nodesH, nodesType){
+		this.nodesW = nodesW; // Number of nodes horizontally (width)
+		this.nodesH = nodesH; // Number of nodes vertically (height)
 
 		this.selectedNode = -1;
-		this.noSelect = new Selection();
-		this.select = new Selection();
+		this.noSelect = new Selection(); // Passed to unselected nodes
+		this.select = new Selection(); // Used for actually selected node
 		this.select.focus.line = 1;
 		this.select.focus.char = 3;
 		this.select.start.line = 2;
@@ -611,14 +611,14 @@ class NodeManager{
 
 		this.nodes = [];
 		var nodeY = 53;
-		for(var i=0; i<this.nodesV; i++){
+		for(var y=0; y<this.nodesH; y++){
 			var nodeX = 355;
-			for(var i2=0; i2<this.nodesH; i2++){
-				if(nodeData[i*this.nodesH + i2 + 2] == 0){
+			for(var x=0; x<this.nodesW; x++){
+				if(nodesType[y][x] == 0){
 					this.nodes.push(new CorruptNode(nodeX, nodeY));
-				}else if(nodeData[i*this.nodesH + i2 + 2] == 1){
-					this.nodes.push(new LogicNode(nodeX, nodeY));
-				}else if(nodeData[i*this.nodesH + i2 + 2] == 2){
+				}else if(nodesType[y][x] == 1){
+					this.nodes.push(new ComputeNode(nodeX, nodeY));
+				}else if(nodesType[y][x] == 2){
 					this.nodes.push(new StackMemNode(nodeX, nodeY));
 				}
 				nodeX += this.nodes[0].nodeBox.w + 46;
@@ -627,7 +627,7 @@ class NodeManager{
 		}
 	}
 
-	setSelection(mPos, end_start){
+	setSelection(mPos, cont_start_end){
 
 	}
 
@@ -649,11 +649,11 @@ ctx.strokeStyle = TRUE_WHITE;
 ctx.imageSmoothingEnabled = false;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 
-var nodeManager = new NodeManager([
-	4, 3, 
-	1, 1, 2, 0, 
-	0, 1, 1, 1, 
-	1, 2, 0, 1
+var allNodes = new NodeContainer(
+	4, 3, [
+	[1, 1, 2, 0], 
+	[0, 1, 1, 1], 
+	[1, 2, 0, 1]
 ]);
 
 // Source: https://stackoverflow.com/a/17130415
@@ -668,31 +668,35 @@ function  getMousePos(canvas, evt) {
 	}
 }
 
-var mPos = { x: 0, y: 0 }
+var mPos = { x: 0, y: 0 } // Mouse position
+var mDown = false; // If the left mouse button is held down
 canvas.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
+	if(mDown) allNodes.setSelection(mPos, 0);
 }, false);
 canvas.addEventListener("mousedown", function(evt) {
-	nodeManager.setSelection(mPos, false);
+	mDown = true;
+	allNodes.setSelection(mPos, 1);
 }, false);
 canvas.addEventListener("mouseup", function(evt) {
-	nodeManager.setSelection(mPos, true);
+	mDown = false;
+	allNodes.setSelection(mPos, 2);
 }, false);
 
 for(var i=0; i<NODE_HEIGHT-1; i++){
-	nodeManager.nodes[0].codeBox.setString(i, "testing " + i);
+	allNodes.nodes[0].codeBox.setString(i, "testing " + i);
 }
-nodeManager.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
 
 for(var i=0; i<NODE_HEIGHT-1; i++){
-	nodeManager.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
+	allNodes.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
-nodeManager.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
-nodeManager.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
+allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
-nodeManager.nodes[2].memoryBox.setString(0, "254");
-nodeManager.nodes[2].memoryBox.setString(1, "498");
-nodeManager.nodes[2].memoryBox.setString(2, "782");
+allNodes.nodes[2].memoryBox.setString(0, "254");
+allNodes.nodes[2].memoryBox.setString(1, "498");
+allNodes.nodes[2].memoryBox.setString(2, "782");
 
 function gameLoop() {
 	
@@ -706,7 +710,7 @@ function gameLoop() {
 	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
 	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
 
-	nodeManager.drawNodes();
+	allNodes.drawNodes();
 
 	ctx.fillStyle = WHITE;
 	ctx.fillRect(mPos.x, mPos.y, 5, 5);
