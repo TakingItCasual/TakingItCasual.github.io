@@ -111,12 +111,16 @@ class Selection{
 	}
 
 	lineSelected(line){
+		if(
+			this.start.line == this.end.line && 
+			this.start.char == this.end.char
+		) return false;
 		if(this.start.line <= line && this.end.line >= line) return true;
 		return false;
 	}
 	charSelected(line, char){
 		if(!lineSelected(line)) return false;
-		if(this.start.char <= char && this.end.char >= char) return true;
+		if(this.start.char <= char && this.end.char > char) return true;
 		return false;
 	}
 
@@ -264,7 +268,57 @@ class BoxCode extends BoxText{
 				}
 			}
 		}else{
+			if(commentStart <= selectStart){
+				if(commentStart < selectStart){
+					string_parts.push(this.getString(line).substr(
+						commentStart, selectStart));
+					string_start.push(commentStart);
+					string_color.push(COMMENT_GRAY);
+				}
 
+				string_parts.push(this.getString(line).substr(
+					selectStart, selectEnd));
+				string_start.push(selectStart);
+				string_color.push(WHITE);
+
+				if(selectEnd < this.stringLength(line)){
+					string_parts.push(this.getString(line).substr(selectEnd));
+					string_start.push(selectEnd);
+					string_color.push(COMMENT_GRAY);
+				}
+			}else if(selectStart < commentStart && commentStart < selectEnd){
+				string_parts.push(this.getString(line).substr(
+					selectStart, commentStart));
+				string_start.push(selectStart);
+				string_color.push(TRUE_WHITE);
+
+				string_parts.push(this.getString(line).substr(
+					commentStart, selectEnd));
+				string_start.push(commentStart);
+				string_color.push(WHITE);
+
+				if(selectEnd < this.stringLength(line)){
+					string_parts.push(this.getString(line).substr(selectEnd));
+					string_start.push(selectEnd);
+					string_color.push(COMMENT_GRAY);
+				}
+			}else if(commentStart >= selectEnd){
+				string_parts.push(this.getString(line).substr(
+					selectStart, selectEnd));
+				string_start.push(selectStart);
+				string_color.push(TRUE_WHITE);
+
+				if(commentStart > selectEnd){
+					string_parts.push(this.getString(line).substr(
+						selectEnd, commentStart));
+					string_start.push(commentStart);
+					string_color.push(WHITE);
+				}
+
+				string_parts.push(this.getString(line).substr(commentStart));
+				string_start.push(commentStart);
+				string_color.push(COMMENT_GRAY);
+			}
 		}
 
 		for(var i=0; i<string_parts.length; i++){
