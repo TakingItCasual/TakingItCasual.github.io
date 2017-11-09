@@ -397,8 +397,6 @@ class ComputeNode{
 			sizeInit.offsetY
 		);
 
-		this.nodeType = 1;
-
 		// Expands the five boxes next to the codeBox to match its height
 		var expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
 		if(expand < 0) expand = 0; // Don't want them to compress
