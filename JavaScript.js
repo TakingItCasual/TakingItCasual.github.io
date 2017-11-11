@@ -1,28 +1,28 @@
-﻿var NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
-var NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
-var ACC_MAX = 999; // Maximum value that an ACC can contain
-var ACC_MIN = -ACC_MAX; // Minimum value
-var CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
-var CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
-var CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
-var LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
-var INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
+﻿let NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
+let NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
+let ACC_MAX = 999; // Maximum value that an ACC can contain
+let ACC_MIN = -ACC_MAX; // Minimum value
+let CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
+let CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
+let CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
+let LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
+let INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
-var WHITE = "#C8C8C8"; // Used for the boxes and code
-var FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
-var DESC_WHITE = "#B4B4B4" // Used for text not in a node
-var TRUE_WHITE = "#FFFFFF"; // White
-var BLACK = "#000000"; // Black
-var COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
-var INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
-var SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
-var ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
-var WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
-var DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
-var LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
-var MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
+let WHITE = "#C8C8C8"; // Used for the boxes and code
+let FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+let DESC_WHITE = "#B4B4B4" // Used for text not in a node
+let TRUE_WHITE = "#FFFFFF"; // White
+let BLACK = "#000000"; // Black
+let COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
+let INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
+let SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
+let ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
+let WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
+let DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
+let LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
+let MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
-var ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
+let ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
@@ -57,8 +57,8 @@ class BoxText extends Box{
 		this.centered = centered; // If true, center text within box's width
 
 		// Why make it private? Because I was experimenting. Too lazy to revert
-		var lineString = [];
-		for(var i=0; i<this.lines; i++) lineString.push("");
+		let lineString = [];
+		for(let i=0; i<this.lines; i++) lineString.push("");
 		this.getString = function(index){
 			if(index < 0 || index > lineString.length-1) return "";
 			return lineString[index];
@@ -75,7 +75,7 @@ class BoxText extends Box{
 
 	// Draws text from lineString to the canvas (extraY used for "FAILURE")
 	drawLine(line, color=ctx.fillStyle, extraY=0){
-		var offsetX = 0;
+		let offsetX = 0;
 		if(this.centered){ // Centers text within box's width
 			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.stringLength(line));
 		}
@@ -88,7 +88,7 @@ class BoxText extends Box{
 	}
 	// Used to draw those solid color boxes (and bars)
 	drawBar(line, startChar, endChar, barColor, extraStart=0, extraEnd=0){
-		var offsetX = 0;
+		let offsetX = 0;
 		if(this.centered){ // Centers text within box's width
 			offsetX = (CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
 		}
@@ -151,12 +151,12 @@ class BoxCode extends BoxText{
 		}
 
 		// Draws bars under selected text and the text itself
-		for(var i=0; i<this.lines; i++){ 
+		for(let i=0; i<this.lines; i++){ 
 			if(!this.getString(i)) continue;
 
-			var commentStart = this.getString(i).indexOf("#");
-			var selectStart = -1;
-			var selectEnd = -1;
+			let commentStart = this.getString(i).indexOf("#");
+			let selectStart = -1;
+			let selectEnd = -1;
 			// Draws bar under selected text
 			if(select.lineSelected(i)){
 				if(select.start.line < i) selectStart = 0;
@@ -173,7 +173,7 @@ class BoxCode extends BoxText{
 
 		// Blinking thingy
 		if(this.currentLine == -1 && select.focus.line != -1){
-			var time = new Date();
+			let time = new Date();
 			time = time.getTime() % 800;
 			if(time > 400){ // Get the blinking thingy to blink every 800ms
 				this.drawBar(
@@ -200,9 +200,9 @@ class BoxCode extends BoxText{
 		if(commentStart == -1) commentStart = NODE_WIDTH;
 		if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
 
-		var stringParts = []; // The cut string value
-		var stringStart = []; // Index number of from where the string was cut
-		var stringColor = []; // Color of the string_part
+		let stringParts = []; // The cut string value
+		let stringStart = []; // Index number of from where the string was cut
+		let stringColor = []; // Color of the string_part
 
 		if(Math.min(commentStart, selectStart) > 0){
 			stringParts.push(this.getString(line).substr(
@@ -298,7 +298,7 @@ class BoxCode extends BoxText{
 			}
 		}
 
-		for(var i=0; i<stringParts.length; i++){
+		for(let i=0; i<stringParts.length; i++){
 			ctx.fillStyle = stringColor[i];
 			ctx.fillText(
 				stringParts[i], 
@@ -312,6 +312,8 @@ class BoxCode extends BoxText{
 // Red "Communication Error" node. No functionality
 class CorruptNode{
 	constructor(x, y, sizeInit){
+		this.nodeType = 0;
+
 		this.descBox = new BoxText(
 			x+2, y+2, 
 			sizeInit.lineW, 
@@ -324,10 +326,10 @@ class CorruptNode{
 		this.descBox.setString(4, "COMMUNICATION");
 		this.descBox.setString(5, "FAILURE");
 		
-		var remainder = (this.descBox.h-2)%4;
-		var sideX = x+this.descBox.w + 2;
-		var sideW = sizeInit.sideWPx + 4;
-		var sideH = (this.descBox.h - remainder)/2 + 3;
+		let remainder = (this.descBox.h-2)%4;
+		let sideX = x+this.descBox.w + 2;
+		let sideW = sizeInit.sideWPx + 4;
+		let sideH = (this.descBox.h - remainder)/2 + 3;
 		function expandCalc(boxNum, y_pos){
 			if(remainder == 0) return 0;
 			if(boxNum == 1){
@@ -389,6 +391,8 @@ class CorruptNode{
 // Node within which the user writes their code
 class ComputeNode{
 	constructor(x, y, sizeInit){
+		this.nodeType = 1;
+
 		this.codeBox = new BoxCode(
 			x+2, y+2, 
 			sizeInit.lineW, 
@@ -398,12 +402,12 @@ class ComputeNode{
 		);
 
 		// Expands the five boxes next to the codeBox to match its height
-		var expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+		let expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
 		if(expand < 0) expand = 0; // Don't want them to compress
 		function expandCalc(boxNum, divide){ 
 			if(expand == 0) return 0;
 			boxNum *= 2;
-			var total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
+			let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
 			if((expand-boxNum-1)%(INFO_BOXES*2) == 0) total--;
 			if(divide) total = Math.floor(total/2);
 			return total;
@@ -527,6 +531,8 @@ class ComputeNode{
 // Stack memory node. Stores values given to it, which can then be retrieved
 class StackMemNode{
 	constructor(x, y, sizeInit){
+		this.nodeType = 2;
+
 		this.descBox = new BoxText(
 			x+2, y+2, 
 			sizeInit.lineW, 
@@ -564,7 +570,7 @@ class StackMemNode{
 		
 		this.memoryBox.drawBox(WHITE);
 		// Prints out each value in memory
-		for(var i=0; i<NODE_HEIGHT; i++){
+		for(let i=0; i<NODE_HEIGHT; i++){
 			// There shouldn't be any lower ones if the current line is empty
 			if(!this.memoryBox.getString(i)) break;
 			this.memoryBox.drawLine(i, WHITE);
@@ -588,7 +594,7 @@ class NodeContainer{
 		this.select.end.line = 2;
 		this.select.end.char = 3;
 
-		var sizeInit = {
+		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
 			lines: NODE_HEIGHT, // Number of lines
 			extraH: CHAR_GAP*2, // Extra height of main text box (px)
@@ -599,10 +605,10 @@ class NodeContainer{
 		sizeInit.sideWPx = sizeInit.sideW*CHAR_WIDTH + CHAR_GAP*2;
 
 		this.nodes = [];
-		var nodeY = 53;
-		for(var y=0; y<this.nodesH; y++){
-			var nodeX = 355;
-			for(var x=0; x<this.nodesW; x++){
+		let nodeY = 53;
+		for(let y=0; y<this.nodesH; y++){
+			let nodeX = 355;
+			for(let x=0; x<this.nodesW; x++){
 				if(nodesType[y][x] == 0){
 					this.nodes.push(new CorruptNode(nodeX, nodeY, sizeInit));
 				}else if(nodesType[y][x] == 1){
@@ -617,13 +623,49 @@ class NodeContainer{
 	}
 
 	setSelection(mPos, cont_start_end){
+		if(cont_start_end == 0){ // Mouse held down, mouse movement
 
+		}else if(cont_start_end == 1){ // Left mouse button clicked
+			let boxX = 0;
+			let boxY = 0;
+			for(let i=0; i<=this.nodes.length; i++){
+				// No nodes were selected
+				if(i == this.nodes.length){
+					this.selectedNode = -1;
+					break;
+				}
+				// codeBox only exists within computeNodes
+				if(this.nodes[i].nodeType != 1) continue;
+
+				boxX = this.nodes[i].codeBox.x + CHAR_GAP;
+				boxY = this.nodes[i].codeBox.y + 
+					this.nodes[i].codeBox.offsetY+CHAR_GAP - 
+					Math.floor(CHAR_GAP/2);
+				if(
+					mPos.x >= boxX && 
+					mPos.x < boxX + NODE_WIDTH*CHAR_WIDTH && 
+					mPos.y >= boxY && 
+					mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
+				){
+					this.selectedNode = i;
+
+
+
+					break;
+				}
+			}
+		}else if(cont_start_end == 2){ // Left mouse button released
+
+		}
 	}
 
 	drawNodes(){
-		for(var i=0; i<this.nodes.length; i++){
+		for(let i=0; i<this.nodes.length; i++){
 			if(this.nodes[i].nodeType == 1){
-				this.nodes[i].drawNode(this.noSelect);
+				if(this.selectedNode == i)
+					this.nodes[i].drawNode(this.select);
+				else
+					this.nodes[i].drawNode(this.noSelect);
 			}else{
 				this.nodes[i].drawNode();
 			}
@@ -631,14 +673,14 @@ class NodeContainer{
 	}
 }
 
-var canvas = document.getElementById("game");
-var ctx = canvas.getContext("2d");
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
 
 ctx.strokeStyle = TRUE_WHITE;
 ctx.imageSmoothingEnabled = false;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 
-var allNodes = new NodeContainer([
+let allNodes = new NodeContainer([
 	[1, 1, 2, 0], 
 	[0, 1, 1, 1], 
 	[1, 2, 0, 1]
@@ -646,9 +688,9 @@ var allNodes = new NodeContainer([
 
 // Source: https://stackoverflow.com/a/17130415
 function  getMousePos(canvas, evt) {
-	var rect = canvas.getBoundingClientRect();
-	var scaleX = canvas.width / rect.width;
-	var scaleY = canvas.height / rect.height;
+	let rect = canvas.getBoundingClientRect();
+	let scaleX = canvas.width / rect.width;
+	let scaleY = canvas.height / rect.height;
 
 	return {
 		x: Math.floor((evt.clientX - rect.left) * scaleX), 
@@ -656,8 +698,8 @@ function  getMousePos(canvas, evt) {
 	}
 }
 
-var mPos = { x: 0, y: 0 } // Mouse position
-var mDown = false; // If the left mouse button is held down
+let mPos = { x: 0, y: 0 } // Mouse position
+let mDown = false; // If the left mouse button is held down
 canvas.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
 	if(mDown) allNodes.setSelection(mPos, 0);
@@ -671,12 +713,12 @@ canvas.addEventListener("mouseup", function(evt) {
 	allNodes.setSelection(mPos, 2);
 }, false);
 
-for(var i=0; i<NODE_HEIGHT-1; i++){
+for(let i=0; i<NODE_HEIGHT-1; i++){
 	allNodes.nodes[0].codeBox.setString(i, "testing " + i);
 }
 allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
 
-for(var i=0; i<NODE_HEIGHT-1; i++){
+for(let i=0; i<NODE_HEIGHT-1; i++){
 	allNodes.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
 allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
