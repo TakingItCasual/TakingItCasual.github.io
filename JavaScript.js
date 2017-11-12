@@ -1,28 +1,30 @@
-﻿let NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
-let NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
-let ACC_MAX = 999; // Maximum value that an ACC can contain
-let ACC_MIN = -ACC_MAX; // Minimum value
-let CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
-let CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
-let CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
-let LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
-let INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
+﻿var tis100clone = (function(){
 
-let WHITE = "#C8C8C8"; // Used for the boxes and code
-let FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
-let DESC_WHITE = "#B4B4B4" // Used for text not in a node
-let TRUE_WHITE = "#FFFFFF"; // White
-let BLACK = "#000000"; // Black
-let COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
-let INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
-let SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
-let ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
-let WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
-let DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
-let LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
-let MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
+const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
+const NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
+const ACC_MAX = 999; // Maximum value that an ACC can contain
+const ACC_MIN = -ACC_MAX; // Minimum value
+const CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
+const CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
+const CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
+const LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
+const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
-let ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
+const WHITE = "#C8C8C8"; // Used for the boxes and code
+const FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+const DESC_WHITE = "#B4B4B4" // Used for text not in a node
+const TRUE_WHITE = "#FFFFFF"; // White
+const BLACK = "#000000"; // Black
+const COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
+const INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
+const SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
+const ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
+const WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
+const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
+const LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax erro
+const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
+
+const ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
@@ -60,15 +62,19 @@ class BoxText extends Box{
 		let lineString = [];
 		for(let i=0; i<this.lines; i++) lineString.push("");
 		this.getString = function(index){
-			if(index < 0 || index > lineString.length-1) return "";
+			if(index >= lineString.length) return "";
 			return lineString[index];
 		}
-		this.setString = function(index, string){
-			if(index < 0 || index > lineString.length-1) return;
-			lineString[index] = string;
+		this.setString = function(index, stringVar){
+			if(index >= this.lines) return; // Index out of range
+			if(stringVar.length > this.lineW){ // Prevents text overflow
+				lineString[index] = stringVar.substr(0, this.lineW);
+			}else{
+				lineString[index] = stringVar;
+			}
 		}
 		this.stringLength = function(index){
-			if(index < 0 || index > lineString.length-1) return 0;
+			if(index >= lineString.length) return 0;
 			return lineString[index].length;
 		}
 	}
@@ -137,6 +143,7 @@ class BoxCode extends BoxText{
 		super(x, y, lineW, lines, extraH, offsetY, false, 1);
 		this.currentLine = -1; // Indicates currently executing line
 		this.executable = true; // True if the current line was just reached
+		this.bottomLine = 0; // Lowest editable line (extended with enter)
 	}
 
 	// Draws text, executing line or selected text bars, and the blinking thingy
@@ -158,7 +165,7 @@ class BoxCode extends BoxText{
 			let selectStart = -1;
 			let selectEnd = -1;
 			// Draws bar under selected text
-			if(select.lineSelected(i)){
+			if(select.lineSelected(i) && this.currentLine == -1){
 				if(select.start.line < i) selectStart = 0;
 				else selectStart = select.start.char;
 
@@ -200,7 +207,7 @@ class BoxCode extends BoxText{
 		if(commentStart == -1) commentStart = NODE_WIDTH;
 		if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
 
-		let stringParts = []; // The cut string value
+		let stringParts = []; // The cut string
 		let stringStart = []; // Index number of from where the string was cut
 		let stringColor = []; // Color of the string_part
 
@@ -326,10 +333,10 @@ class CorruptNode{
 		this.descBox.setString(4, "COMMUNICATION");
 		this.descBox.setString(5, "FAILURE");
 		
-		let remainder = (this.descBox.h-2)%4;
-		let sideX = x+this.descBox.w + 2;
-		let sideW = sizeInit.sideWPx + 4;
-		let sideH = (this.descBox.h - remainder)/2 + 3;
+		const remainder = (this.descBox.h-2)%4;
+		const sideX = x+this.descBox.w + 2;
+		const sideW = sizeInit.sideWPx + 4;
+		const sideH = (this.descBox.h - remainder)/2 + 3;
 		function expandCalc(boxNum, y_pos){
 			if(remainder == 0) return 0;
 			if(boxNum == 1){
@@ -402,7 +409,7 @@ class ComputeNode{
 		);
 
 		// Expands the five boxes next to the codeBox to match its height
-		let expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+		const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
 		if(expand < 0) expand = 0; // Don't want them to compress
 		function expandCalc(boxNum, divide){ 
 			if(expand == 0) return 0;
@@ -584,7 +591,7 @@ class NodeContainer{
 		this.nodesW = nodesType[0].length; // Width of table of nodes
 		this.nodesH = nodesType.length; // Height of table of nodes
 
-		this.selectedNode = -1;
+		this.selectedNode = -1; // Indicates which node to pass select to
 		this.noSelect = new Selection(); // Passed to unselected nodes
 		this.select = new Selection(); // Used for actually selected node
 		this.select.focus.line = 1;
@@ -592,7 +599,7 @@ class NodeContainer{
 		this.select.start.line = 2;
 		this.select.start.char = 2;
 		this.select.end.line = 2;
-		this.select.end.char = 3;
+		this.select.end.char = 4;
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -643,13 +650,15 @@ class NodeContainer{
 					Math.floor(CHAR_GAP/2);
 				if(
 					mPos.x >= boxX && 
-					mPos.x < boxX + NODE_WIDTH*CHAR_WIDTH && 
+					mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
 					mPos.y >= boxY && 
 					mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
 				){
 					this.selectedNode = i;
 
-
+					this.select.focus.line = Math.min(
+						this.nodes[i].codeBox.bottomLine,
+						Math.floor((mPos.y-boxY/LINE_HEIGHT)));
 
 					break;
 				}
@@ -748,3 +757,5 @@ function gameLoop() {
 	requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
+
+})();
