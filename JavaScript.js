@@ -24,7 +24,8 @@ const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
 const LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax erro
 const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
-const ALLOWED_CHARS = new RegExp("^[\x00-\x7F]*$"); // ASCII characters
+const ALLOWED_CHARS = /^[\x20-\x7E]*$/; // printable ASCII characters in regex
+const RN_END = "\x0D\x0A"; // \r\n: Added to ends for copy/paste compatibility
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
@@ -45,37 +46,46 @@ class Box{
 }
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
-	constructor(x, y, lineW, lines, extraH, offsetY, centered=false, borderW=1){
+	constructor(
+		x, y, lineW, maxLines, extraH, offsetY, centered=false, borderW=1
+	){
 		super(
 			x, y, 
 			lineW*CHAR_WIDTH + CHAR_GAP*2, 
-			lines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
+			maxLines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
 			borderW
 		);
 		this.lineW = lineW; // Width of the box in terms of characters
-		this.lines = lines; // Number of string lines
+		this.maxLines = maxLines; // Maximum number of string lines
 		this.extraH = extraH; // Extra height of the box in pixels
 		this.offsetY = offsetY; // Custom y-offset for text lines in pixels
 		this.centered = centered; // If true, center text within box's width
 
 		// Why make it private? Because I was experimenting. Too lazy to revert
 		let lineString = [];
-		for(let i=0; i<this.lines; i++) lineString.push("");
+		lineString.push("");
+		this.stringCount = function(){
+			return lineString.length;
+		}
 		this.getString = function(index){
 			if(index >= lineString.length) return "";
 			return lineString[index];
 		}
 		this.setString = function(index, stringVar){
-			if(index >= this.lines) return; // Index out of range
-			if(stringVar.length > this.lineW){ // Prevents text overflow
-				lineString[index] = stringVar.substr(0, this.lineW);
-			}else{
-				lineString[index] = stringVar;
-			}
+			if(index >= this.maxLines) return; // Index out of range
+			while(index >= lineString.length) 
+				lineString.push(""); // Expand lineString
+			// The substr cuts the stringVar to prevent text overflow
+			lineString[index] = stringVar.substr(0, this.lineW);
 		}
 		this.stringLength = function(index){
 			if(index >= lineString.length) return 0;
 			return lineString[index].length;
+		}
+		this.delString = function(index){
+			if(index >= lineString.length) return;
+			if(lineString.length <= 1) return; // Last one shouldn't be removed
+			lineString.splice(index, 1);
 		}
 	}
 
@@ -126,7 +136,7 @@ class Selection{
 		return false;
 	}
 	charSelected(line, char){
-		if(!lineSelected(line)) return false;
+		if(!this.lineSelected(line)) return false;
 		if(this.start.char <= char && this.end.char > char) return true;
 		return false;
 	}
@@ -139,8 +149,8 @@ class Selection{
 }
 // Can divide a line into different colors for comments and selection
 class BoxCode extends BoxText{
-	constructor(x, y, lineW, lines, extraH, offsetY){
-		super(x, y, lineW, lines, extraH, offsetY, false, 1);
+	constructor(x, y, lineW, maxLines, extraH, offsetY){
+		super(x, y, lineW, maxLines, extraH, offsetY, false, 1);
 		this.currentLine = -1; // Indicates currently executing line
 		this.executable = true; // True if the current line was just reached
 		this.bottomLine = 0; // Lowest editable line (extended with enter)
@@ -158,8 +168,8 @@ class BoxCode extends BoxText{
 		}
 
 		// Draws bars under selected text and the text itself
-		for(let i=0; i<this.lines; i++){ 
-			if(!this.getString(i)) continue;
+		for(let i=0; i<this.maxLines; i++){ 
+			if(!this.getString(i)) continue; // String is empty
 
 			let commentStart = this.getString(i).indexOf("#");
 			let selectStart = -1;
@@ -324,7 +334,7 @@ class CorruptNode{
 		this.descBox = new BoxText(
 			x+2, y+2, 
 			sizeInit.lineW, 
-			sizeInit.lines, 
+			sizeInit.maxLines, 
 			sizeInit.extraH, 
 			sizeInit.offsetY, 
 			true
@@ -403,7 +413,7 @@ class ComputeNode{
 		this.codeBox = new BoxCode(
 			x+2, y+2, 
 			sizeInit.lineW, 
-			sizeInit.lines, 
+			sizeInit.maxLines, 
 			sizeInit.extraH, 
 			sizeInit.offsetY
 		);
@@ -543,7 +553,7 @@ class StackMemNode{
 		this.descBox = new BoxText(
 			x+2, y+2, 
 			sizeInit.lineW, 
-			sizeInit.lines, 
+			sizeInit.maxLines, 
 			sizeInit.extraH, 
 			sizeInit.offsetY, 
 			true
@@ -553,7 +563,7 @@ class StackMemNode{
 		this.memoryBox = new BoxText(
 			x+this.descBox.w+4, y+2, 
 			sizeInit.sideW, 
-			sizeInit.lines, 
+			sizeInit.maxLines, 
 			sizeInit.extraH,
 			sizeInit.offsetY, 
 			true
@@ -603,7 +613,7 @@ class NodeContainer{
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
-			lines: NODE_HEIGHT, // Number of lines
+			maxLines: NODE_HEIGHT, // Maximum number of lines
 			extraH: CHAR_GAP*2, // Extra height of main text box (px)
 			offsetY: CHAR_GAP, // Distance lines are pushed down (px)
 			sideW: ACC_MIN.toString().length+1, // Width of side boxes (chars)
@@ -657,8 +667,13 @@ class NodeContainer{
 					this.selectedNode = i;
 
 					this.select.focus.line = Math.min(
-						this.nodes[i].codeBox.bottomLine,
-						Math.floor((mPos.y-boxY/LINE_HEIGHT)));
+						this.nodes[i].codeBox.stringCount()-1,
+						Math.floor((mPos.y-boxY)/LINE_HEIGHT));
+
+					this.select.focus.char = Math.min(
+						this.nodes[i].codeBox.stringLength(
+							this.select.focus.line), 
+						Math.floor((mPos.x-boxX)/CHAR_WIDTH));
 
 					break;
 				}
@@ -725,12 +740,12 @@ canvas.addEventListener("mouseup", function(evt) {
 for(let i=0; i<NODE_HEIGHT-1; i++){
 	allNodes.nodes[0].codeBox.setString(i, "testing " + i);
 }
-allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
 	allNodes.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
-allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
 allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
 allNodes.nodes[2].memoryBox.setString(0, "254");
@@ -752,7 +767,7 @@ function gameLoop() {
 	allNodes.drawNodes();
 
 	ctx.fillStyle = WHITE;
-	ctx.fillRect(mPos.x, mPos.y, 5, 5);
+	//ctx.fillRect(mPos.x, mPos.y, 5, 5);
 
 	requestAnimationFrame(gameLoop);
 }
