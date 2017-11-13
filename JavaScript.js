@@ -1,34 +1,37 @@
-﻿var NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
-var NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
-var ACC_MAX = 999; // Maximum value that an ACC can contain
-var ACC_MIN = -ACC_MAX; // Minimum value
-var CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
-var CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
-var CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
-var LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
-var INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
+﻿var tis100clone = (function(){
 
-var WHITE = "#C8C8C8"; // Used for the boxes and code
-var FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
-var DESC_WHITE = "#B4B4B4" // Used for text not in a node
-var TRUE_WHITE = "#FFFFFF"; // White
-var BLACK = "#000000"; // Black
-var COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
-var INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
-var SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
-var ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
-var WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
-var DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
-var LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax error
-var MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
+const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
+const NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
+const ACC_MAX = 999; // Maximum value that an ACC can contain
+const ACC_MIN = -ACC_MAX; // Minimum value
+const CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
+const CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
+const CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
+const LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
+const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
-var ALLOWED_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#%()+,-./:<=>?[\\]_";
+const WHITE = "#C8C8C8"; // Used for the boxes and code
+const FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+const DESC_WHITE = "#B4B4B4" // Used for text not in a node
+const TRUE_WHITE = "#FFFFFF"; // White
+const BLACK = "#000000"; // Black
+const COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
+const INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
+const SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
+const ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
+const WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
+const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
+const LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax erro
+const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
+
+const ALLOWED_CHARS = /^[\x20-\x7E]*$/; // printable ASCII characters in regex
+const RN_END = "\x0D\x0A"; // \r\n: Added to ends for copy/paste compatibility
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
 	constructor(x, y, w, h, borderW=1){
-		this.x = x + ((borderW-1)/2) + 0.5; // x-pos of box's top left
-		this.y = y + ((borderW-1)/2) + 0.5; // y-pos of box's top left
+		this.x = x + ((borderW-1)/2); // x-pos of box's top left
+		this.y = y + ((borderW-1)/2); // y-pos of box's top left
 		this.w = w - (borderW - 1); // Box's width
 		this.h = h - (borderW - 1); // Box's height
 		this.borderW = borderW; // Width of box's border
@@ -37,65 +40,79 @@ class Box{
 	drawBox(color = ctx.strokeStyle){
 		ctx.strokeStyle = color;
 		ctx.lineWidth = this.borderW;
-		ctx.strokeRect(this.x, this.y, this.w, this.h);
+		ctx.strokeRect(this.x-0.5, this.y-0.5, this.w, this.h);
 		ctx.lineWidth = 1;
 	}
 }
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
-	constructor(x, y, lineW, lines, extraH, offsetY, centered=false, borderW=1){
+	constructor(
+		x, y, lineW, maxLines, extraH, offsetY, centered=false, borderW=1
+	){
 		super(
 			x, y, 
 			lineW*CHAR_WIDTH + CHAR_GAP*2, 
-			lines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
+			maxLines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
 			borderW
 		);
 		this.lineW = lineW; // Width of the box in terms of characters
+		this.maxLines = maxLines; // Maximum number of string lines
 		this.extraH = extraH; // Extra height of the box in pixels
 		this.offsetY = offsetY; // Custom y-offset for text lines in pixels
 		this.centered = centered; // If true, center text within box's width
 
-		// My attempt at a private variable. Seems to work
-		var line_string = [];
-		for(var i=0; i<lines; i++) line_string.push("");
-		this.getString = function(index){
-			if(index < 0 || index > line_string.length-1) return "";
-			return line_string[index];
+		// Why make it private? Because I was experimenting. Too lazy to revert
+		let lineString = [];
+		lineString.push("");
+		this.stringCount = function(){
+			return lineString.length;
 		}
-		this.setString = function(index, string){
-			if(index < 0 || index > line_string.length-1) return;
-			line_string[index] = string;
+		this.getString = function(index){
+			if(index >= lineString.length) return "";
+			return lineString[index];
+		}
+		this.setString = function(index, stringVar){
+			if(index >= this.maxLines) return; // Index out of range
+			while(index >= lineString.length) 
+				lineString.push(""); // Expand lineString
+			// The substr cuts the stringVar to prevent text overflow
+			lineString[index] = stringVar.substr(0, this.lineW);
 		}
 		this.stringLength = function(index){
-			if(index < 0 || index > line_string.length-1) return 0;
-			return line_string[index].length;
+			if(index >= lineString.length) return 0;
+			return lineString[index].length;
+		}
+		this.delString = function(index){
+			if(index >= lineString.length) return;
+			if(lineString.length <= 1) return; // Last one shouldn't be removed
+			lineString.splice(index, 1);
 		}
 	}
 
-	// Draws text from line_string to the canvas (extraY used for "FAILURE")
+	// Draws text from lineString to the canvas (extraY used for "FAILURE")
 	drawLine(line, color=ctx.fillStyle, extraY=0){
-		var offsetX = 0;
+		let offsetX = 0;
 		if(this.centered){ // Centers text within box's width
 			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.stringLength(line));
 		}
 		ctx.fillStyle = color;
 		ctx.fillText(
 			this.getString(line), 
-			this.x+CHAR_GAP + offsetX + 0.5, 
-			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT + 0.5
+			this.x+CHAR_GAP + offsetX, 
+			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
 		);
 	}
-	// Used to draw those solid color bars
+	// Used to draw those solid color boxes (and bars)
 	drawBar(line, startChar, endChar, barColor, extraStart=0, extraEnd=0){
-		var offsetX = 0;
+		let offsetX = 0;
 		if(this.centered){ // Centers text within box's width
 			offsetX = (CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
 		}
 		ctx.fillStyle = barColor;
 		ctx.fillRect(
-			this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart + 0.5, 
+			this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart, 
 			this.y+this.offsetY+CHAR_GAP + (line)*LINE_HEIGHT - 
-				Math.floor(CHAR_GAP/2) + 0.5, 
+				Math.floor(CHAR_GAP/2), 
 			(endChar-startChar)*CHAR_WIDTH + extraStart+extraEnd, 
 			LINE_HEIGHT
 		);
@@ -111,12 +128,16 @@ class Selection{
 	}
 
 	lineSelected(line){
+		if(
+			this.start.line == this.end.line && 
+			this.start.char == this.end.char
+		) return false;
 		if(this.start.line <= line && this.end.line >= line) return true;
 		return false;
 	}
 	charSelected(line, char){
-		if(!lineSelected(line)) return false;
-		if(this.start.char <= char && this.end.char >= char) return true;
+		if(!this.lineSelected(line)) return false;
+		if(this.start.char <= char && this.end.char > char) return true;
 		return false;
 	}
 
@@ -128,36 +149,13 @@ class Selection{
 }
 // Can divide a line into different colors for comments and selection
 class BoxCode extends BoxText{
-	constructor(x, y, lineW, lines, extraH, offsetY){
-		super(x, y, lineW, lines, extraH, offsetY, false, 1);
+	constructor(x, y, lineW, maxLines, extraH, offsetY){
+		super(x, y, lineW, maxLines, extraH, offsetY, false, 1);
 		this.currentLine = -1; // Indicates currently executing line
 		this.executable = true; // True if the current line was just reached
+		this.bottomLine = 0; // Lowest editable line (extended with enter)
 	}
 
-	// Draws bars for executing lines or selected text
-	drawAllBars(select){
-		if(this.currentLine != -1){ // Only false before the program is started
-			if(this.executable) ctx.fillStyle = ACTIVE_FOCUS;
-			else ctx.fillStyle = WAIT_FOCUS;
-			// Draws bar under currently executing line
-			this.drawBar(
-				this.currentLine, 0, this.lineW, ctx.fillStyle, 3, 1
-			);
-		}else{ // Code can only be selected before the program is run
-			for(var i=0; i<NODE_HEIGHT; i++){
-				if(select.lineSelected(i)){
-					var start = 0;
-					if(select.start.line < i) start = 0;
-					else start = select.start.char;
-
-					var end = 0;
-					if(select.end.line > i) end = this.stringLength(i);
-					else end = select.end.char;
-					this.drawBar(i, start, end, SELECT_GRAY);
-				}
-			}
-		}
-	}
 	// Draws text, executing line or selected text bars, and the blinking thingy
 	drawAllLinesAndBars(select){
 		// Draws bar under currently executing line
@@ -170,14 +168,14 @@ class BoxCode extends BoxText{
 		}
 
 		// Draws bars under selected text and the text itself
-		for(var i=0; i<NODE_HEIGHT; i++){ 
-			if(!this.getString(i)) continue;
+		for(let i=0; i<this.maxLines; i++){ 
+			if(!this.getString(i)) continue; // String is empty
 
-			var commentStart = this.getString(i).indexOf("#");
-			var selectStart = -1;
-			var selectEnd = -1;
+			let commentStart = this.getString(i).indexOf("#");
+			let selectStart = -1;
+			let selectEnd = -1;
 			// Draws bar under selected text
-			if(select.lineSelected(i)){
+			if(select.lineSelected(i) && this.currentLine == -1){
 				if(select.start.line < i) selectStart = 0;
 				else selectStart = select.start.char;
 
@@ -192,7 +190,7 @@ class BoxCode extends BoxText{
 
 		// Blinking thingy
 		if(this.currentLine == -1 && select.focus.line != -1){
-			var time = new Date();
+			let time = new Date();
 			time = time.getTime() % 800;
 			if(time > 400){ // Get the blinking thingy to blink every 800ms
 				this.drawBar(
@@ -219,81 +217,136 @@ class BoxCode extends BoxText{
 		if(commentStart == -1) commentStart = NODE_WIDTH;
 		if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
 
-		var string_parts = []; // The raw string value
-		var string_start = []; // Index number of from where the string was cut
-		var string_color = []; // Color of the string_part
+		let stringParts = []; // The cut string
+		let stringStart = []; // Index number of from where the string was cut
+		let stringColor = []; // Color of the string_part
 
 		if(Math.min(commentStart, selectStart) > 0){
-			string_parts.push(this.getString(line).substr(
+			stringParts.push(this.getString(line).substr(
 				0, Math.min(commentStart, selectStart)));
-			string_start.push(0);
-			string_color.push(WHITE);
+			stringStart.push(0);
+			stringColor.push(WHITE);
 		}
 		if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
 			if(commentStart > 0){
-				string_parts.push(this.getString(line).substr(commentStart));
-				string_start.push(commentStart);
-				string_color.push(COMMENT_GRAY);
+				stringParts.push(this.getString(line).substr(commentStart));
+				stringStart.push(commentStart);
+				stringColor.push(COMMENT_GRAY);
 			}else{
-				string_parts.push(this.getString(line));
-				string_start.push(0);
-				string_color(COMMENT_GRAY);
+				stringParts.push(this.getString(line));
+				stringStart.push(0);
+				stringColor(COMMENT_GRAY);
 			}
 		}else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
 			if(selectStart > 0){
-				string_parts.push(this.getString(line).substr(
+				stringParts.push(this.getString(line).substr(
 					selectStart, selectEnd));
-				string_start.push(selectStart);
-				string_color.push(TRUE_WHITE);
+				stringStart.push(selectStart);
+				stringColor.push(TRUE_WHITE);
 
 				if(selectEnd < this.stringLength(line)){
-					string_parts.push(this.getString(line).substr(selectEnd));
-					string_start.push(selectEnd);
-					string_color.push(WHITE);
+					stringParts.push(this.getString(line).substr(selectEnd));
+					stringStart.push(selectEnd);
+					stringColor.push(WHITE);
 				}
 			}else{
-				string_parts.push(this.getString(line).substr(
+				stringParts.push(this.getString(line).substr(
 					selectStart, selectEnd));
-				string_start.push(selectStart);
-				string_color.push(TRUE_WHITE);
+				stringStart.push(selectStart);
+				stringColor.push(TRUE_WHITE);
 
 				if(selectEnd < this.stringLength(line)){
-					string_parts.push(this.getString(line).substr(selectEnd));
-					string_start.push(selectEnd);
-					string_color.push(WHITE);
+					stringParts.push(this.getString(line).substr(selectEnd));
+					stringStart.push(selectEnd);
+					stringColor.push(WHITE);
 				}
 			}
 		}else{
+			if(commentStart <= selectStart){
+				if(commentStart < selectStart){
+					stringParts.push(this.getString(line).substr(
+						commentStart, selectStart));
+					stringStart.push(commentStart);
+					stringColor.push(COMMENT_GRAY);
+				}
 
+				stringParts.push(this.getString(line).substr(
+					selectStart, selectEnd));
+				stringStart.push(selectStart);
+				stringColor.push(WHITE);
+
+				if(selectEnd < this.stringLength(line)){
+					stringParts.push(this.getString(line).substr(selectEnd));
+					stringStart.push(selectEnd);
+					stringColor.push(COMMENT_GRAY);
+				}
+			}else if(selectStart < commentStart && commentStart < selectEnd){
+				stringParts.push(this.getString(line).substr(
+					selectStart, commentStart));
+				stringStart.push(selectStart);
+				stringColor.push(TRUE_WHITE);
+
+				stringParts.push(this.getString(line).substr(
+					commentStart, selectEnd));
+				stringStart.push(commentStart);
+				stringColor.push(WHITE);
+
+				if(selectEnd < this.stringLength(line)){
+					stringParts.push(this.getString(line).substr(selectEnd));
+					stringStart.push(selectEnd);
+					stringColor.push(COMMENT_GRAY);
+				}
+			}else if(commentStart >= selectEnd){
+				stringParts.push(this.getString(line).substr(
+					selectStart, selectEnd));
+				stringStart.push(selectStart);
+				stringColor.push(TRUE_WHITE);
+
+				if(commentStart > selectEnd){
+					stringParts.push(this.getString(line).substr(
+						selectEnd, commentStart));
+					stringStart.push(commentStart);
+					stringColor.push(WHITE);
+				}
+
+				stringParts.push(this.getString(line).substr(commentStart));
+				stringStart.push(commentStart);
+				stringColor.push(COMMENT_GRAY);
+			}
 		}
 
-		for(var i=0; i<string_parts.length; i++){
-			ctx.fillStyle = string_color[i];
+		for(let i=0; i<stringParts.length; i++){
+			ctx.fillStyle = stringColor[i];
 			ctx.fillText(
-				string_parts[i], 
-				this.x+CHAR_GAP + CHAR_WIDTH*string_start[i] + 0.5, 
-				this.y+this.offsetY + (line+1)*LINE_HEIGHT + 0.5
+				stringParts[i], 
+				this.x+CHAR_GAP + CHAR_WIDTH*stringStart[i], 
+				this.y+this.offsetY + (line+1)*LINE_HEIGHT
 			);
 		}
 	}
 }
 
+// Red "Communication Error" node. No functionality
 class CorruptNode{
-	constructor(x, y){
+	constructor(x, y, sizeInit){
+		this.nodeType = 0;
+
 		this.descBox = new BoxText(
-			x+2, 
-			y+2, 
-			NODE_WIDTH+1, 
-			NODE_HEIGHT, CHAR_GAP*2, 
-			CHAR_GAP, true
+			x+2, y+2, 
+			sizeInit.lineW, 
+			sizeInit.maxLines, 
+			sizeInit.extraH, 
+			sizeInit.offsetY, 
+			true
 		);
+
 		this.descBox.setString(4, "COMMUNICATION");
 		this.descBox.setString(5, "FAILURE");
 		
-		var remainder = (this.descBox.h-2)%4;
-		var sideX = x+this.descBox.w + 2;
-		var sideW = (ACC_MIN.toString().length+1)*CHAR_WIDTH + CHAR_GAP*2 + 4;
-		var sideH = (this.descBox.h - remainder)/2 + 3;
+		const remainder = (this.descBox.h-2)%4;
+		const sideX = x+this.descBox.w + 2;
+		const sideW = sizeInit.sideWPx + 4;
+		const sideH = (this.descBox.h - remainder)/2 + 3;
 		function expandCalc(boxNum, y_pos){
 			if(remainder == 0) return 0;
 			if(boxNum == 1){
@@ -317,23 +370,23 @@ class CorruptNode{
 			y,
 			sideW,
 			sideH + expandCalc(1, false), 3
-		)
+		);
 		this.sideBox2 = new Box(
 			sideX,
 			y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
 			sideW,
 			sideH + expandCalc(2, false), 3
-		)
+		);
 		this.sideBox3 = new Box(
 			sideX,
 			y + this.sideBox1.h,
 			sideW,
 			sideH + expandCalc(3, false), 3
-		)
+		);
 
 		this.nodeBox = new Box(
-			x, y,
-			this.descBox.w + this.sideBox1.w + 4,
+			x, y, 
+			this.descBox.w + sizeInit.sideWPx + 6, 
 			this.descBox.h + 4, 3
 		);
 	}
@@ -352,23 +405,26 @@ class CorruptNode{
 		this.sideBox3.drawBox(DARK_RED);
 	}
 }
-class LogicNode{
-	constructor(x, y){
+// Node within which the user writes their code
+class ComputeNode{
+	constructor(x, y, sizeInit){
+		this.nodeType = 1;
+
 		this.codeBox = new BoxCode(
-			x+2, 
-			y+2, 
-			NODE_WIDTH+1, 
-			NODE_HEIGHT, CHAR_GAP*2, 
-			CHAR_GAP
+			x+2, y+2, 
+			sizeInit.lineW, 
+			sizeInit.maxLines, 
+			sizeInit.extraH, 
+			sizeInit.offsetY
 		);
-		
+
 		// Expands the five boxes next to the codeBox to match its height
-		var expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+		const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
 		if(expand < 0) expand = 0; // Don't want them to compress
 		function expandCalc(boxNum, divide){ 
 			if(expand == 0) return 0;
 			boxNum *= 2;
-			var total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
+			let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
 			if((expand-boxNum-1)%(INFO_BOXES*2) == 0) total--;
 			if(divide) total = Math.floor(total/2);
 			return total;
@@ -378,20 +434,20 @@ class LogicNode{
 		this.accBox = new BoxText(
 			x+this.codeBox.w+4, 
 			y+2, 
-			ACC_MIN.toString().length+1, 
-			2, CHAR_GAP*2 + expandCalc(0, false),
-			CHAR_GAP + expandCalc(0, true), true
+			sizeInit.sideW, 
+			2, sizeInit.extraH + expandCalc(0, false),
+			sizeInit.offsetY + expandCalc(0, true), true
 		);
-		this.ACC = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+		this.ACC = 0;
 		this.accBox.setString(0, "ACC");
 		
 		// Initialize the BAK box
 		this.bakBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.accBox.y+this.accBox.h + 1.5, 
-			ACC_MIN.toString().length+1, 
-			2, CHAR_GAP*2 + expandCalc(1, false),
-			CHAR_GAP + expandCalc(1, true), true
+			this.accBox.y+this.accBox.h + 2, 
+			sizeInit.sideW, 
+			2, sizeInit.extraH + expandCalc(1, false),
+			sizeInit.offsetY + expandCalc(1, true), true
 		);
 		this.BAK = 0;
 		this.bakBox.setString(0, "BAK");
@@ -399,10 +455,10 @@ class LogicNode{
 		// Initialize the LAST box
 		this.lastBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.bakBox.y+this.bakBox.h + 1.5, 
-			ACC_MIN.toString().length+1, 
-			2, CHAR_GAP*2 + expandCalc(2, false),
-			CHAR_GAP + expandCalc(2, true), true
+			this.bakBox.y+this.bakBox.h + 2, 
+			sizeInit.sideW, 
+			2, sizeInit.extraH + expandCalc(2, false),
+			sizeInit.offsetY + expandCalc(2, true), true
 		);
 		this.LAST = null;
 		this.lastBox.setString(0, "LAST");
@@ -410,10 +466,10 @@ class LogicNode{
 		// Initialize the MODE box
 		this.modeBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.lastBox.y+this.lastBox.h + 1.5, 
-			ACC_MIN.toString().length+1, 
-			2, CHAR_GAP*2 + expandCalc(3, false),
-			CHAR_GAP + expandCalc(3, true), true
+			this.lastBox.y+this.lastBox.h + 2, 
+			sizeInit.sideW, 
+			2, sizeInit.extraH + expandCalc(3, false),
+			sizeInit.offsetY + expandCalc(3, true), true
 		);
 		this.MODE = "IDLE";
 		this.modeBox.setString(0, "MODE");
@@ -421,16 +477,16 @@ class LogicNode{
 		// Initialize the IDLE box
 		this.idleBox = new BoxText(
 			x+this.codeBox.w+4, 
-			this.modeBox.y+this.modeBox.h + 1.5, 
-			ACC_MIN.toString().length+1, 
-			2, CHAR_GAP*2 + expandCalc(4, false),
-			CHAR_GAP + expandCalc(4, true), true
+			this.modeBox.y+this.modeBox.h + 2, 
+			sizeInit.sideW, 
+			2, sizeInit.extraH + expandCalc(4, false),
+			sizeInit.offsetY + expandCalc(4, true), true
 		);
 		this.IDLE = 0;
 		this.idleBox.setString(0, "IDLE");
 
 		this.nodeBox = new Box(
-			x, y, this.codeBox.w+this.accBox.w + 6, this.codeBox.h + 4
+			x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
 		);
 	}
 	
@@ -489,51 +545,176 @@ class LogicNode{
 		this.IDLE = 0;
 	}
 }
+// Stack memory node. Stores values given to it, which can then be retrieved
 class StackMemNode{
-	constructor(x, y){
+	constructor(x, y, sizeInit){
+		this.nodeType = 2;
+
 		this.descBox = new BoxText(
-			x+2, 
-			y+2, 
-			NODE_WIDTH+1, 
-			NODE_HEIGHT, CHAR_GAP*2, 
-			CHAR_GAP, true
+			x+2, y+2, 
+			sizeInit.lineW, 
+			sizeInit.maxLines, 
+			sizeInit.extraH, 
+			sizeInit.offsetY, 
+			true
 		);
 		this.descBox.setString(7, "STACK MEMORY NODE");
 		
 		this.memoryBox = new BoxText(
-			x+this.descBox.w+4, 
-			y+2, 
-			ACC_MIN.toString().length+1, 
-			NODE_HEIGHT, CHAR_GAP*2,
-			CHAR_GAP, true
+			x+this.descBox.w+4, y+2, 
+			sizeInit.sideW, 
+			sizeInit.maxLines, 
+			sizeInit.extraH,
+			sizeInit.offsetY, 
+			true
 		);
-		
+
 		this.nodeBox = new Box(
-			x, y, this.descBox.w+this.memoryBox.w + 6, this.descBox.h + 4
+			x, y, 
+			this.descBox.w + sizeInit.sideWPx + 6, 
+			this.descBox.h + 4
 		);
 	}
 	
 	drawNode(){
 		this.nodeBox.drawBox(WHITE);
 		
+		// Draws the description box ("STACK MEMORY NODE")
 		this.descBox.drawBox(WHITE);
-		this.descBox.drawBar(5, 0, this.descBox.stringLength(7), WHITE);
+		this.descBox.drawBar(5, 0, this.descBox.stringLength(7), TRUE_WHITE);
 		this.descBox.drawLine(7, WHITE);
-		this.descBox.drawBar(9, 0, this.descBox.stringLength(7), WHITE);
+		this.descBox.drawBar(9, 0, this.descBox.stringLength(7), TRUE_WHITE);
 		
 		this.memoryBox.drawBox(WHITE);
 		// Prints out each value in memory
-		for(var i=0; i<NODE_HEIGHT; i++){ 
-			if(!this.memoryBox.getString(i)) continue;
+		for(let i=0; i<NODE_HEIGHT; i++){
+			// There shouldn't be any lower ones if the current line is empty
+			if(!this.memoryBox.getString(i)) break;
 			this.memoryBox.drawLine(i, WHITE);
 		}
 	}
 }
 
+// Holds all nodes. Coordinates node communication and mouse selection
+class NodeContainer{
+	constructor(nodesType){
+		this.nodesW = nodesType[0].length; // Width of table of nodes
+		this.nodesH = nodesType.length; // Height of table of nodes
+
+		this.selectedNode = -1; // Indicates which node to pass select to
+		this.noSelect = new Selection(); // Passed to unselected nodes
+		this.select = new Selection(); // Used for actually selected node
+		this.select.focus.line = 1;
+		this.select.focus.char = 3;
+		this.select.start.line = 2;
+		this.select.start.char = 2;
+		this.select.end.line = 2;
+		this.select.end.char = 4;
+
+		let sizeInit = {
+			lineW: NODE_WIDTH+1, // Width of line (chars)
+			maxLines: NODE_HEIGHT, // Maximum number of lines
+			extraH: CHAR_GAP*2, // Extra height of main text box (px)
+			offsetY: CHAR_GAP, // Distance lines are pushed down (px)
+			sideW: ACC_MIN.toString().length+1, // Width of side boxes (chars)
+			sideWPx: 0 // Width of side boxes (px)
+		}
+		sizeInit.sideWPx = sizeInit.sideW*CHAR_WIDTH + CHAR_GAP*2;
+
+		this.nodes = [];
+		let nodeY = 53;
+		for(let y=0; y<this.nodesH; y++){
+			let nodeX = 355;
+			for(let x=0; x<this.nodesW; x++){
+				if(nodesType[y][x] == 0){
+					this.nodes.push(new CorruptNode(nodeX, nodeY, sizeInit));
+				}else if(nodesType[y][x] == 1){
+					this.nodes.push(new ComputeNode(nodeX, nodeY, sizeInit));
+				}else if(nodesType[y][x] == 2){
+					this.nodes.push(new StackMemNode(nodeX, nodeY, sizeInit));
+				}
+				nodeX += this.nodes[0].nodeBox.w + 46;
+			}
+			nodeY += this.nodes[0].nodeBox.h + 40;
+		}
+	}
+
+	setSelection(mPos, cont_start_end){
+		if(cont_start_end == 0){ // Mouse held down, mouse movement
+
+		}else if(cont_start_end == 1){ // Left mouse button clicked
+			let boxX = 0;
+			let boxY = 0;
+			for(let i=0; i<=this.nodes.length; i++){
+				// No nodes were selected
+				if(i == this.nodes.length){
+					this.selectedNode = -1;
+					break;
+				}
+				// codeBox only exists within computeNodes
+				if(this.nodes[i].nodeType != 1) continue;
+
+				boxX = this.nodes[i].codeBox.x + CHAR_GAP;
+				boxY = this.nodes[i].codeBox.y + 
+					this.nodes[i].codeBox.offsetY+CHAR_GAP - 
+					Math.floor(CHAR_GAP/2);
+				if(
+					mPos.x >= boxX && 
+					mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
+					mPos.y >= boxY && 
+					mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
+				){
+					this.selectedNode = i;
+
+					this.select.focus.line = Math.min(
+						this.nodes[i].codeBox.stringCount()-1,
+						Math.floor((mPos.y-boxY)/LINE_HEIGHT));
+
+					this.select.focus.char = Math.min(
+						this.nodes[i].codeBox.stringLength(
+							this.select.focus.line), 
+						Math.floor((mPos.x-boxX)/CHAR_WIDTH));
+
+					break;
+				}
+			}
+		}else if(cont_start_end == 2){ // Left mouse button released
+
+		}
+	}
+
+	drawNodes(){
+		for(let i=0; i<this.nodes.length; i++){
+			if(this.nodes[i].nodeType == 1){
+				if(this.selectedNode == i)
+					this.nodes[i].drawNode(this.select);
+				else
+					this.nodes[i].drawNode(this.noSelect);
+			}else{
+				this.nodes[i].drawNode();
+			}
+		}
+	}
+}
+
+let canvas = document.getElementById("game");
+let ctx = canvas.getContext("2d");
+
+ctx.strokeStyle = TRUE_WHITE;
+ctx.imageSmoothingEnabled = false;
+ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
+
+let allNodes = new NodeContainer([
+	[1, 1, 2, 0], 
+	[0, 1, 1, 1], 
+	[1, 2, 0, 1]
+]);
+
+// Source: https://stackoverflow.com/a/17130415
 function  getMousePos(canvas, evt) {
-	var rect = canvas.getBoundingClientRect();
-	var scaleX = canvas.width / rect.width;
-	var scaleY = canvas.height / rect.height;
+	let rect = canvas.getBoundingClientRect();
+	let scaleX = canvas.width / rect.width;
+	let scaleY = canvas.height / rect.height;
 
 	return {
 		x: Math.floor((evt.clientX - rect.left) * scaleX), 
@@ -541,46 +722,35 @@ function  getMousePos(canvas, evt) {
 	}
 }
 
-var canvas = document.getElementById("game");
-var ctx = canvas.getContext("2d");
-
-var mPos = { x: 0, y: 0 }
-ctx.strokeStyle = TRUE_WHITE;
-ctx.imageSmoothingEnabled = false;
-ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
-
-canvas.addEventListener('mousemove', function(evt) {
+let mPos = { x: 0, y: 0 } // Mouse position
+let mDown = false; // If the left mouse button is held down
+canvas.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
+	if(mDown) allNodes.setSelection(mPos, 0);
+}, false);
+canvas.addEventListener("mousedown", function(evt) {
+	mDown = true;
+	allNodes.setSelection(mPos, 1);
+}, false);
+canvas.addEventListener("mouseup", function(evt) {
+	mDown = false;
+	allNodes.setSelection(mPos, 2);
 }, false);
 
-var noSelect = new Selection(); // Only 1 node can be selected at a time
-var select = new Selection();
-select.focus.line = 1;
-select.focus.char = 3;
-select.start.line = 2;
-select.start.char = 2;
-select.end.line = 2;
-select.end.char = 4;
-
-var node1 = new LogicNode(100, 100);
-for(var i=0; i<NODE_HEIGHT-1; i++){
-	node1.codeBox.setString(i, "testing " + i);
+for(let i=0; i<NODE_HEIGHT-1; i++){
+	allNodes.nodes[0].codeBox.setString(i, "testing " + i);
 }
-node1.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
+allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
-var node2 = new CorruptNode(100, 300);
-
-var node3 = new LogicNode(315, 100);
-for(var i=0; i<NODE_HEIGHT; i++){
-	node3.codeBox.setString(i, "testing " + (i + NODE_HEIGHT - 1));
+for(let i=0; i<NODE_HEIGHT-1; i++){
+	allNodes.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
 }
-node3.codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, right");
-node3.codeBox.currentLine = NODE_HEIGHT-1;
+allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
-var node4 = new StackMemNode(315, 300);
-node4.memoryBox.setString(0, "254");
-node4.memoryBox.setString(1, "498");
-node4.memoryBox.setString(2, "782");
+allNodes.nodes[2].memoryBox.setString(0, "254");
+allNodes.nodes[2].memoryBox.setString(1, "498");
+allNodes.nodes[2].memoryBox.setString(2, "782");
 
 function gameLoop() {
 	
@@ -590,18 +760,17 @@ function gameLoop() {
 	ctx.fill();
 
 	ctx.fillStyle = TRUE_WHITE;
-	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 50, 50);
-	ctx.fillText("1234567890", 50, 62); 
-	ctx.fillText("!#%()+,-./:<=>?[\\]_", 50, 74);
+	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
+	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
+	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
 
-	node1.drawNode(select);
-	node2.drawNode();
-	node3.drawNode(noSelect);
-	node4.drawNode();
+	allNodes.drawNodes();
 
 	ctx.fillStyle = WHITE;
-	ctx.fillRect(mPos.x, mPos.y, 5, 5);
+	//ctx.fillRect(mPos.x, mPos.y, 5, 5);
 
 	requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
+
+})();
