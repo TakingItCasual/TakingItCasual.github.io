@@ -21,7 +21,7 @@ const SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
 const ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
 const WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
 const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
-const LIGHT_RED = "#BF0D0D"; // Used for red bars in corruptNode and syntax erro
+const LIGHT_RED = "#BF0D0D"; // Used for corruptNode's red bars and syntax error
 const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
 const ALLOWED_CHARS = /^[\x20-\x7E]*$/; // printable ASCII characters in regex
@@ -78,6 +78,21 @@ class BoxText extends Box{
 			// The substr cuts the stringVar to prevent text overflow
 			lineString[index] = stringVar.substr(0, this.lineW);
 		}
+		this.setChar = function(index, charI, charVar){
+			if(index >= lineString.length) return;
+			if(charI > lineString[index].length) 
+				charI = lineString[index].length;
+			let str = lineString[index];
+			this.setString(index, 
+				str.substr(0, charI) + charVar + str.substr(charI));
+		}
+		this.backspace = function(index, char){
+			if(index >= lineString.length) return;
+			this.setString(index, "");
+		}
+		this.delete = function(index, char){
+
+		}
 		this.stringLength = function(index){
 			if(index >= lineString.length) return 0;
 			return lineString[index].length;
@@ -122,29 +137,29 @@ class BoxText extends Box{
 // Used for when the user highlights text in their code
 class Selection{
 	constructor(){
-		this.focus = { line: -1, char: 0 }; // Where the user is typing
-		this.start = { line: -1, char: 0 }; // Start of selection
-		this.end = { line: -1, char: 0 }; // End of selection
+		this.focus = { line: -1, charI: 0 }; // Where the user is typing
+		this.start = { line: -1, charI: 0 }; // Start of selection
+		this.end = { line: -1, charI: 0 }; // End of selection
 	}
 
 	lineSelected(line){
 		if(
 			this.start.line == this.end.line && 
-			this.start.char == this.end.char
+			this.start.charI == this.end.charI
 		) return false;
 		if(this.start.line <= line && this.end.line >= line) return true;
 		return false;
 	}
-	charSelected(line, char){
+	charSelected(line, charI){
 		if(!this.lineSelected(line)) return false;
-		if(this.start.char <= char && this.end.char > char) return true;
+		if(this.start.charI <= charI && this.end.charI > charI) return true;
 		return false;
 	}
 
 	reset(all){
-		if(all) this.focus = { line: -1, char: 0 };
-		this.start = { line: -1, char: 0 };
-		this.end = { line: -1, char: 0 };
+		if(all) this.focus = { line: -1, charI: 0 };
+		this.start = { line: -1, charI: 0 };
+		this.end = { line: -1, charI: 0 };
 	}
 }
 // Can divide a line into different colors for comments and selection
@@ -177,10 +192,10 @@ class BoxCode extends BoxText{
 			// Draws bar under selected text
 			if(select.lineSelected(i) && this.currentLine == -1){
 				if(select.start.line < i) selectStart = 0;
-				else selectStart = select.start.char;
+				else selectStart = select.start.charI;
 
 				if(select.end.line > i) selectEnd = this.stringLength(i);
-				else selectEnd = select.end.char;
+				else selectEnd = select.end.charI;
 
 				this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
 			}
@@ -194,8 +209,8 @@ class BoxCode extends BoxText{
 			time = time.getTime() % 800;
 			if(time > 400){ // Get the blinking thingy to blink every 800ms
 				this.drawBar(
-					select.focus.line, select.focus.char, 
-					select.focus.char+1, FOCUS_WHITE
+					select.focus.line, select.focus.charI, 
+					select.focus.charI+1, FOCUS_WHITE
 				);
 			}
 		}
@@ -605,11 +620,11 @@ class NodeContainer{
 		this.noSelect = new Selection(); // Passed to unselected nodes
 		this.select = new Selection(); // Used for actually selected node
 		this.select.focus.line = 1;
-		this.select.focus.char = 3;
+		this.select.focus.charI = 3;
 		this.select.start.line = 2;
-		this.select.start.char = 2;
+		this.select.start.charI = 2;
 		this.select.end.line = 2;
-		this.select.end.char = 4;
+		this.select.end.charI = 4;
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -639,7 +654,7 @@ class NodeContainer{
 		}
 	}
 
-	setSelection(mPos, cont_start_end){
+	movSelection(mPos, cont_start_end){
 		if(cont_start_end == 0){ // Mouse held down, mouse movement
 
 		}else if(cont_start_end == 1){ // Left mouse button clicked
@@ -670,7 +685,7 @@ class NodeContainer{
 						this.nodes[i].codeBox.stringCount()-1,
 						Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
-					this.select.focus.char = Math.min(
+					this.select.focus.charI = Math.min(
 						this.nodes[i].codeBox.stringLength(
 							this.select.focus.line), 
 						Math.floor((mPos.x-boxX)/CHAR_WIDTH));
@@ -680,6 +695,15 @@ class NodeContainer{
 			}
 		}else if(cont_start_end == 2){ // Left mouse button released
 
+		}
+	}
+	setSelection(append_enter_backspace_delete, char=""){
+		if(this.selectedNode == -1) return;
+		if(append_enter_backspace_delete == 0){
+			this.nodes[this.selectedNode].codeBox.setChar(
+				this.select.focus.line, this.select.focus.charI, char);
+			if(this.select.focus.charI < NODE_WIDTH)
+				this.select.focus.charI++;
 		}
 	}
 
@@ -726,15 +750,35 @@ let mPos = { x: 0, y: 0 } // Mouse position
 let mDown = false; // If the left mouse button is held down
 canvas.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
-	if(mDown) allNodes.setSelection(mPos, 0);
+	if(mDown) allNodes.movSelection(mPos, 0);
 }, false);
 canvas.addEventListener("mousedown", function(evt) {
 	mDown = true;
-	allNodes.setSelection(mPos, 1);
+	allNodes.movSelection(mPos, 1);
 }, false);
 canvas.addEventListener("mouseup", function(evt) {
 	mDown = false;
-	allNodes.setSelection(mPos, 2);
+	allNodes.movSelection(mPos, 2);
+}, false);
+
+canvas.addEventListener("keypress", function(evt) {
+	let charCode = evt.keyCode;
+    let char = String.fromCharCode(charCode);
+    if(ALLOWED_CHARS.test(char)){
+    	char = char.toUpperCase();
+    	//allNodes.nodes[5].codeBox.setChar(0, allNodes.nodes[5].codeBox.stringLength(0), char);
+    	allNodes.setSelection(0, char);
+    }
+	
+}, false);
+canvas.addEventListener("keydown", function(evt) {
+	if(evt.keyCode == 13){ // Enter
+		allNodes.setSelection(1);
+	}else if(evt.keyCode == 8){ // Backspace
+		allNodes.setSelection(2);
+	}else if(evt.keyCode == 46){ // Delete
+		allNodes.setSelection(3);
+	}
 }, false);
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
@@ -767,7 +811,6 @@ function gameLoop() {
 	allNodes.drawNodes();
 
 	ctx.fillStyle = WHITE;
-	//ctx.fillRect(mPos.x, mPos.y, 5, 5);
 
 	requestAnimationFrame(gameLoop);
 }
