@@ -1,4 +1,4 @@
-﻿var tis100clone = (function(){
+var tis100clone = (function(){
 
 const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
 const NODE_HEIGHT = 15; // Number of string lines in a node. Min: 14
@@ -93,7 +93,7 @@ class StringList{
 		}
 		this.cut = function(index, charI){
 			if(index >= lineString.length) return "";
-			if(charI >= lineString[index].length) return "";
+			if(charI > lineString[index].length) return "";
 			let cutStr = lineString[index].substr(-charI);
 			lineString[index] = lineString[index].slice(0, -charI);
 			return cutStr;
@@ -721,6 +721,8 @@ class NodeContainer{
 		if(this.nodes[this.focusNode].codeBox.str.count() >= NODE_HEIGHT) 
 			return; // Does nothing if line number is at maximum
 
+		debugger;
+
 		let distToEndOfLine = this.nodes[this.focusNode].codeBox.str.strLength(
 			this.select.focus.line) - this.select.focus.charI;
 
@@ -869,11 +871,11 @@ canvas.addEventListener("mouseup", function(evt) {
 canvas.addEventListener("keypress", function(evt) {
 	// Required for cross-browser compatibility
 	let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
-    let char = String.fromCharCode(charCode);
-    if(ALLOWED_CHARS.test(char)){
-    	char = char.toUpperCase();
-    	allNodes.addChar(char);
-    }
+	let char = String.fromCharCode(charCode);
+	if(ALLOWED_CHARS.test(char)){
+		char = char.toUpperCase();
+		allNodes.addChar(char);
+	}
 }, false);
 canvas.addEventListener("keydown", function(evt) {
 	if(evt.keyCode == 13){ // Enter
