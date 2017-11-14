@@ -1,8 +1,8 @@
 ﻿@font-face {
 	font-family: tis-100-copy;
-	src: local("tis 100 copy"),
-		local("tis-100-copy"),
-		url(tis100copy.ttf);
+	src: local("tis 100 copy"), 
+		local("tis-100-copy"), 
+		url(tis100copy.ttf) format('truetype');
 	font-weight: bold;
 }
 

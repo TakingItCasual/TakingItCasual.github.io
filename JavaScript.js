@@ -1,7 +1,7 @@
 ﻿var tis100clone = (function(){
 
 const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
-const NODE_HEIGHT = 15; // Number of writable lines in a node. min: 14
+const NODE_HEIGHT = 15; // Number of string lines in a node. Min: 14
 const ACC_MAX = 999; // Maximum value that an ACC can contain
 const ACC_MIN = -ACC_MAX; // Minimum value
 const CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
@@ -10,10 +10,10 @@ const CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
 const LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
 const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
-const WHITE = "#C8C8C8"; // Used for the boxes and code
-const FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+const DIM_WHITE = "#C8C8C8"; // Used for the boxes and code
 const DESC_WHITE = "#B4B4B4" // Used for text not in a node
-const TRUE_WHITE = "#FFFFFF"; // White
+const FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+const WHITE = "#FFFFFF"; // White
 const BLACK = "#000000"; // Black
 const COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
 const INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
@@ -44,6 +44,62 @@ class Box{
 		ctx.lineWidth = 1;
 	}
 }
+
+class StringList{
+	constructor(lineW, maxLines){
+		this.lineW = lineW;
+		this.maxLines = maxLines;
+
+		let lineString = [];
+		lineString.push("");
+		this.count = function(){
+			return lineString.length;
+		}
+		this.get = function(index){
+			if(index >= lineString.length) return "";
+			return lineString[index];
+		}
+		this.set = function(index, stringVar){
+			if(index >= this.maxLines) return; // Index out of range
+			while(index >= lineString.length) 
+				lineString.push(""); // Expand lineString
+			// The substr cuts the stringVar to prevent text overflow
+			lineString[index] = stringVar.substr(0, this.lineW);
+		}
+		this.addChar = function(index, charI, charVar){
+			if(index >= lineString.length) return;
+			if(charI > lineString[index].length) 
+				charI = lineString[index].length;
+			let str = lineString[index];
+			this.set(index, str.substr(0, charI) + charVar + str.substr(charI));
+		}
+		this.delChar = function(index, charI){
+			if(index >= lineString.length) return;
+			if(charI > lineString[index].length) return;
+			let str = lineString[index];
+			this.set(index, str.substr(0, charI-1) + str.substr(charI));
+		}
+		this.strLength = function(index){
+			if(index >= lineString.length) return 0;
+			return lineString[index].length;
+		}
+		this.add = function(index){
+			lineString.splice(index+1, 0, "");
+		}
+		this.del = function(index){
+			if(index >= lineString.length) return;
+			if(lineString.length <= 1) return; // Last one shouldn't be removed
+			lineString.splice(index, 1);
+		}
+		this.cut = function(index, charI){
+			if(index >= lineString.length) return "";
+			if(charI >= lineString[index].length) return "";
+			let cutStr = lineString[index].substr(-charI);
+			lineString[index] = lineString[index].slice(0, -charI);
+			return cutStr;
+		}
+	}
+}
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
 	constructor(
@@ -61,58 +117,18 @@ class BoxText extends Box{
 		this.offsetY = offsetY; // Custom y-offset for text lines in pixels
 		this.centered = centered; // If true, center text within box's width
 
-		// Why make it private? Because I was experimenting. Too lazy to revert
-		let lineString = [];
-		lineString.push("");
-		this.stringCount = function(){
-			return lineString.length;
-		}
-		this.getString = function(index){
-			if(index >= lineString.length) return "";
-			return lineString[index];
-		}
-		this.setString = function(index, stringVar){
-			if(index >= this.maxLines) return; // Index out of range
-			while(index >= lineString.length) 
-				lineString.push(""); // Expand lineString
-			// The substr cuts the stringVar to prevent text overflow
-			lineString[index] = stringVar.substr(0, this.lineW);
-		}
-		this.setChar = function(index, charI, charVar){
-			if(index >= lineString.length) return;
-			if(charI > lineString[index].length) 
-				charI = lineString[index].length;
-			let str = lineString[index];
-			this.setString(index, 
-				str.substr(0, charI) + charVar + str.substr(charI));
-		}
-		this.backspace = function(index, char){
-			if(index >= lineString.length) return;
-			this.setString(index, "");
-		}
-		this.delete = function(index, char){
-
-		}
-		this.stringLength = function(index){
-			if(index >= lineString.length) return 0;
-			return lineString[index].length;
-		}
-		this.delString = function(index){
-			if(index >= lineString.length) return;
-			if(lineString.length <= 1) return; // Last one shouldn't be removed
-			lineString.splice(index, 1);
-		}
+		this.str = new StringList(this.lineW, this.maxLines);
 	}
 
 	// Draws text from lineString to the canvas (extraY used for "FAILURE")
 	drawLine(line, color=ctx.fillStyle, extraY=0){
 		let offsetX = 0;
 		if(this.centered){ // Centers text within box's width
-			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.stringLength(line));
+			offsetX = (CHAR_WIDTH/2)*(this.lineW - this.str.strLength(line));
 		}
 		ctx.fillStyle = color;
 		ctx.fillText(
-			this.getString(line), 
+			this.str.get(line), 
 			this.x+CHAR_GAP + offsetX, 
 			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
 		);
@@ -168,7 +184,6 @@ class BoxCode extends BoxText{
 		super(x, y, lineW, maxLines, extraH, offsetY, false, 1);
 		this.currentLine = -1; // Indicates currently executing line
 		this.executable = true; // True if the current line was just reached
-		this.bottomLine = 0; // Lowest editable line (extended with enter)
 	}
 
 	// Draws text, executing line or selected text bars, and the blinking thingy
@@ -184,9 +199,9 @@ class BoxCode extends BoxText{
 
 		// Draws bars under selected text and the text itself
 		for(let i=0; i<this.maxLines; i++){ 
-			if(!this.getString(i)) continue; // String is empty
+			if(!this.str.get(i)) continue; // String is empty
 
-			let commentStart = this.getString(i).indexOf("#");
+			let commentStart = this.str.get(i).indexOf("#");
 			let selectStart = -1;
 			let selectEnd = -1;
 			// Draws bar under selected text
@@ -194,7 +209,7 @@ class BoxCode extends BoxText{
 				if(select.start.line < i) selectStart = 0;
 				else selectStart = select.start.charI;
 
-				if(select.end.line > i) selectEnd = this.stringLength(i);
+				if(select.end.line > i) selectEnd = this.str.strLength(i);
 				else selectEnd = select.end.charI;
 
 				this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
@@ -223,7 +238,7 @@ class BoxCode extends BoxText{
 			(commentStart == -1 && selectStart == -1)
 		){
 			if(this.currentLine == line) ctx.fillStyle = BLACK;
-			else ctx.fillStyle = WHITE;
+			else ctx.fillStyle = DIM_WHITE;
 
 			this.drawLine(line);
 			return;
@@ -237,94 +252,94 @@ class BoxCode extends BoxText{
 		let stringColor = []; // Color of the string_part
 
 		if(Math.min(commentStart, selectStart) > 0){
-			stringParts.push(this.getString(line).substr(
+			stringParts.push(this.str.get(line).substr(
 				0, Math.min(commentStart, selectStart)));
 			stringStart.push(0);
-			stringColor.push(WHITE);
+			stringColor.push(DIM_WHITE);
 		}
 		if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
 			if(commentStart > 0){
-				stringParts.push(this.getString(line).substr(commentStart));
+				stringParts.push(this.str.get(line).substr(commentStart));
 				stringStart.push(commentStart);
 				stringColor.push(COMMENT_GRAY);
 			}else{
-				stringParts.push(this.getString(line));
+				stringParts.push(this.str.get(line));
 				stringStart.push(0);
-				stringColor(COMMENT_GRAY);
+				stringColor.push(COMMENT_GRAY);
 			}
 		}else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
 			if(selectStart > 0){
-				stringParts.push(this.getString(line).substr(
+				stringParts.push(this.str.get(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
-				stringColor.push(TRUE_WHITE);
+				stringColor.push(WHITE);
 
-				if(selectEnd < this.stringLength(line)){
-					stringParts.push(this.getString(line).substr(selectEnd));
+				if(selectEnd < this.str.strLength(line)){
+					stringParts.push(this.str.get(line).substr(selectEnd));
 					stringStart.push(selectEnd);
-					stringColor.push(WHITE);
+					stringColor.push(DIM_WHITE);
 				}
 			}else{
-				stringParts.push(this.getString(line).substr(
+				stringParts.push(this.str.get(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
-				stringColor.push(TRUE_WHITE);
+				stringColor.push(WHITE);
 
-				if(selectEnd < this.stringLength(line)){
-					stringParts.push(this.getString(line).substr(selectEnd));
+				if(selectEnd < this.str.strLength(line)){
+					stringParts.push(this.str.get(line).substr(selectEnd));
 					stringStart.push(selectEnd);
-					stringColor.push(WHITE);
+					stringColor.push(DIM_WHITE);
 				}
 			}
 		}else{
 			if(commentStart <= selectStart){
 				if(commentStart < selectStart){
-					stringParts.push(this.getString(line).substr(
+					stringParts.push(this.str.get(line).substr(
 						commentStart, selectStart));
 					stringStart.push(commentStart);
 					stringColor.push(COMMENT_GRAY);
 				}
 
-				stringParts.push(this.getString(line).substr(
+				stringParts.push(this.str.get(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
-				stringColor.push(WHITE);
+				stringColor.push(DIM_WHITE);
 
-				if(selectEnd < this.stringLength(line)){
-					stringParts.push(this.getString(line).substr(selectEnd));
+				if(selectEnd < this.str.strLength(line)){
+					stringParts.push(this.str.get(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(COMMENT_GRAY);
 				}
 			}else if(selectStart < commentStart && commentStart < selectEnd){
-				stringParts.push(this.getString(line).substr(
+				stringParts.push(this.str.get(line).substr(
 					selectStart, commentStart));
 				stringStart.push(selectStart);
-				stringColor.push(TRUE_WHITE);
-
-				stringParts.push(this.getString(line).substr(
-					commentStart, selectEnd));
-				stringStart.push(commentStart);
 				stringColor.push(WHITE);
 
-				if(selectEnd < this.stringLength(line)){
-					stringParts.push(this.getString(line).substr(selectEnd));
+				stringParts.push(this.str.get(line).substr(
+					commentStart, selectEnd));
+				stringStart.push(commentStart);
+				stringColor.push(DIM_WHITE);
+
+				if(selectEnd < this.str.strLength(line)){
+					stringParts.push(this.str.get(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(COMMENT_GRAY);
 				}
 			}else if(commentStart >= selectEnd){
-				stringParts.push(this.getString(line).substr(
+				stringParts.push(this.str.get(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
-				stringColor.push(TRUE_WHITE);
+				stringColor.push(WHITE);
 
 				if(commentStart > selectEnd){
-					stringParts.push(this.getString(line).substr(
+					stringParts.push(this.str.get(line).substr(
 						selectEnd, commentStart));
 					stringStart.push(commentStart);
-					stringColor.push(WHITE);
+					stringColor.push(DIM_WHITE);
 				}
 
-				stringParts.push(this.getString(line).substr(commentStart));
+				stringParts.push(this.str.get(line).substr(commentStart));
 				stringStart.push(commentStart);
 				stringColor.push(COMMENT_GRAY);
 			}
@@ -355,8 +370,8 @@ class CorruptNode{
 			true
 		);
 
-		this.descBox.setString(4, "COMMUNICATION");
-		this.descBox.setString(5, "FAILURE");
+		this.descBox.str.set(4, "COMMUNICATION");
+		this.descBox.str.set(5, "FAILURE");
 		
 		const remainder = (this.descBox.h-2)%4;
 		const sideX = x+this.descBox.w + 2;
@@ -410,10 +425,10 @@ class CorruptNode{
 		this.nodeBox.drawBox(DARK_RED);
 
 		this.descBox.drawBox(DARK_RED);
-		this.descBox.drawBar(2, 0, this.descBox.stringLength(4), LIGHT_RED);
+		this.descBox.drawBar(2, 0, this.descBox.str.strLength(4), LIGHT_RED);
 		this.descBox.drawLine(4, DARK_RED);
 		this.descBox.drawLine(5, DARK_RED, 2);
-		this.descBox.drawBar(7, 0, this.descBox.stringLength(4), LIGHT_RED);
+		this.descBox.drawBar(7, 0, this.descBox.str.strLength(4), LIGHT_RED);
 
 		this.sideBox1.drawBox(DARK_RED);
 		this.sideBox2.drawBox(DARK_RED);
@@ -454,7 +469,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(0, true), true
 		);
 		this.ACC = 0;
-		this.accBox.setString(0, "ACC");
+		this.accBox.str.set(0, "ACC");
 		
 		// Initialize the BAK box
 		this.bakBox = new BoxText(
@@ -465,7 +480,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(1, true), true
 		);
 		this.BAK = 0;
-		this.bakBox.setString(0, "BAK");
+		this.bakBox.str.set(0, "BAK");
 		
 		// Initialize the LAST box
 		this.lastBox = new BoxText(
@@ -476,7 +491,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(2, true), true
 		);
 		this.LAST = null;
-		this.lastBox.setString(0, "LAST");
+		this.lastBox.str.set(0, "LAST");
 		
 		// Initialize the MODE box
 		this.modeBox = new BoxText(
@@ -487,7 +502,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(3, true), true
 		);
 		this.MODE = "IDLE";
-		this.modeBox.setString(0, "MODE");
+		this.modeBox.str.set(0, "MODE");
 		
 		// Initialize the IDLE box
 		this.idleBox = new BoxText(
@@ -498,7 +513,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(4, true), true
 		);
 		this.IDLE = 0;
-		this.idleBox.setString(0, "IDLE");
+		this.idleBox.str.set(0, "IDLE");
 
 		this.nodeBox = new Box(
 			x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
@@ -506,49 +521,49 @@ class ComputeNode{
 	}
 	
 	drawNode(select){
-		this.nodeBox.drawBox(WHITE);
+		this.nodeBox.drawBox(DIM_WHITE);
 		
 		// Draws the editable codeBox and all relevant bars
-		this.codeBox.drawBox(WHITE);
+		this.codeBox.drawBox(DIM_WHITE);
 		this.codeBox.drawAllLinesAndBars(select);
 
 		// Draws the ACC box
-		this.accBox.drawBox(WHITE);
+		this.accBox.drawBox(DIM_WHITE);
 		this.accBox.drawLine(0, INFO_GRAY);
-		this.accBox.setString(1, this.ACC.toString());
-		this.accBox.drawLine(1, WHITE);
+		this.accBox.str.set(1, this.ACC.toString());
+		this.accBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the BAK box
-		this.bakBox.drawBox(WHITE);
+		this.bakBox.drawBox(DIM_WHITE);
 		this.bakBox.drawLine(0, INFO_GRAY);
 		if(this.BAK.toString().length + 2 <= this.bakBox.lineW){
-			this.bakBox.setString(1, "(" + this.BAK.toString() + ")");
+			this.bakBox.str.set(1, "(" + this.BAK.toString() + ")");
 		}else{
-			this.bakBox.setString(1, this.BAK.toString());
+			this.bakBox.str.set(1, this.BAK.toString());
 		}
-		this.bakBox.drawLine(1, WHITE);
+		this.bakBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the LAST box
-		this.lastBox.drawBox(WHITE);
+		this.lastBox.drawBox(DIM_WHITE);
 		this.lastBox.drawLine(0, INFO_GRAY);
 		if(this.LAST){
-			this.lastBox.setString(1, this.LAST.toString());
+			this.lastBox.str.set(1, this.LAST.toString());
 		}else{
-			this.lastBox.setString(1, "N/A");
+			this.lastBox.str.set(1, "N/A");
 		}
-		this.lastBox.drawLine(1, WHITE);
+		this.lastBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the MODE box
-		this.modeBox.drawBox(WHITE);
+		this.modeBox.drawBox(DIM_WHITE);
 		this.modeBox.drawLine(0, INFO_GRAY);
-		this.modeBox.setString(1, this.MODE.toString());
-		this.modeBox.drawLine(1, WHITE);
+		this.modeBox.str.set(1, this.MODE.toString());
+		this.modeBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the IDLE box
-		this.idleBox.drawBox(WHITE);
+		this.idleBox.drawBox(DIM_WHITE);
 		this.idleBox.drawLine(0, INFO_GRAY);
-		this.idleBox.setString(1, this.IDLE.toString() + "%");
-		this.idleBox.drawLine(1, WHITE);
+		this.idleBox.str.set(1, this.IDLE.toString() + "%");
+		this.idleBox.drawLine(1, DIM_WHITE);
 	}
 	
 	haltExecution(){
@@ -573,7 +588,7 @@ class StackMemNode{
 			sizeInit.offsetY, 
 			true
 		);
-		this.descBox.setString(7, "STACK MEMORY NODE");
+		this.descBox.str.set(7, "STACK MEMORY NODE");
 		
 		this.memoryBox = new BoxText(
 			x+this.descBox.w+4, y+2, 
@@ -592,39 +607,33 @@ class StackMemNode{
 	}
 	
 	drawNode(){
-		this.nodeBox.drawBox(WHITE);
+		this.nodeBox.drawBox(DIM_WHITE);
 		
 		// Draws the description box ("STACK MEMORY NODE")
-		this.descBox.drawBox(WHITE);
-		this.descBox.drawBar(5, 0, this.descBox.stringLength(7), TRUE_WHITE);
-		this.descBox.drawLine(7, WHITE);
-		this.descBox.drawBar(9, 0, this.descBox.stringLength(7), TRUE_WHITE);
+		this.descBox.drawBox(DIM_WHITE);
+		this.descBox.drawBar(5, 0, this.descBox.str.strLength(7), WHITE);
+		this.descBox.drawLine(7, DIM_WHITE);
+		this.descBox.drawBar(9, 0, this.descBox.str.strLength(7), WHITE);
 		
-		this.memoryBox.drawBox(WHITE);
+		this.memoryBox.drawBox(DIM_WHITE);
 		// Prints out each value in memory
 		for(let i=0; i<NODE_HEIGHT; i++){
 			// There shouldn't be any lower ones if the current line is empty
-			if(!this.memoryBox.getString(i)) break;
-			this.memoryBox.drawLine(i, WHITE);
+			if(!this.memoryBox.str.get(i)) break;
+			this.memoryBox.drawLine(i, DIM_WHITE);
 		}
 	}
 }
 
-// Holds all nodes. Coordinates node communication and mouse selection
+// Holds all nodes. Coordinates keyboard input and mouse selection
 class NodeContainer{
 	constructor(nodesType){
 		this.nodesW = nodesType[0].length; // Width of table of nodes
 		this.nodesH = nodesType.length; // Height of table of nodes
 
-		this.selectedNode = -1; // Indicates which node to pass select to
+		this.focusNode = -1; // Indicates which node the user is focused on
 		this.noSelect = new Selection(); // Passed to unselected nodes
-		this.select = new Selection(); // Used for actually selected node
-		this.select.focus.line = 1;
-		this.select.focus.charI = 3;
-		this.select.start.line = 2;
-		this.select.start.charI = 2;
-		this.select.end.line = 2;
-		this.select.end.charI = 4;
+		this.select = new Selection(); // Passed to the focused node
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -663,7 +672,7 @@ class NodeContainer{
 			for(let i=0; i<=this.nodes.length; i++){
 				// No nodes were selected
 				if(i == this.nodes.length){
-					this.selectedNode = -1;
+					this.focusNode = -1;
 					break;
 				}
 				// codeBox only exists within computeNodes
@@ -679,14 +688,14 @@ class NodeContainer{
 					mPos.y >= boxY && 
 					mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
 				){
-					this.selectedNode = i;
+					this.focusNode = i;
 
 					this.select.focus.line = Math.min(
-						this.nodes[i].codeBox.stringCount()-1,
+						this.nodes[i].codeBox.str.count()-1,
 						Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
 					this.select.focus.charI = Math.min(
-						this.nodes[i].codeBox.stringLength(
+						this.nodes[i].codeBox.str.strLength(
 							this.select.focus.line), 
 						Math.floor((mPos.x-boxX)/CHAR_WIDTH));
 
@@ -697,10 +706,107 @@ class NodeContainer{
 
 		}
 	}
+
+	addChar(char){
+		if(this.focusNode == -1) return;
+		if(
+			this.nodes[this.focusNode].codeBox.str.strLength(
+				this.select.focus.line) >= NODE_WIDTH
+		) return;
+		this.nodes[this.focusNode].codeBox.str.addChar(
+			this.select.focus.line, this.select.focus.charI, char);
+		this.select.focus.charI++;
+	}
+	newLine(){
+		if(this.nodes[this.focusNode].codeBox.str.count() >= NODE_HEIGHT) 
+			return; // Does nothing if line number is at maximum
+
+		let distToEndOfLine = this.nodes[this.focusNode].codeBox.str.strLength(
+			this.select.focus.line) - this.select.focus.charI;
+
+		this.nodes[this.focusNode].codeBox.str.add(this.select.focus.line);
+		this.select.focus.line += 1;
+		this.select.focus.charI = 0;
+
+		if(distToEndOfLine > 0){ // Focus not at the end of the line
+			let strToMove = this.nodes[this.focusNode].codeBox.str.cut(
+				this.select.focus.line-1, distToEndOfLine);
+			this.nodes[this.focusNode].codeBox.str.set(
+				this.select.focus.line, strToMove);
+		}
+	}
+	bakChar(){
+		if(this.select.focus.charI > 0){
+			this.nodes[this.focusNode].codeBox.str.delChar(
+				this.select.focus.line, this.select.focus.charI);
+			this.select.focus.charI -= 1;
+		}else if(this.select.focus.line > 0){ // Prevent backspace at node start
+			if(
+				this.nodes[this.focusNode].codeBox.str.strLength(
+					this.select.focus.line) + 
+				this.nodes[this.focusNode].codeBox.str.strLength(
+					this.select.focus.line-1) <=
+				NODE_WIDTH
+			){
+				this.select.focus.line -= 1;
+				this.select.focus.charI = 
+					this.nodes[this.focusNode].codeBox.str.strLength(
+						this.select.focus.line);
+
+				let combine = 
+					this.nodes[this.focusNode].codeBox.str.get(
+						this.select.focus.line) + 
+					this.nodes[this.focusNode].codeBox.str.get(
+						this.select.focus.line+1);
+				this.nodes[this.focusNode].codeBox.str.set(
+					this.select.focus.line, combine);
+
+				this.nodes[this.focusNode].codeBox.str.del(
+					this.select.focus.line+1);
+			}
+		}
+	}
+	delChar(){
+		if(
+			this.select.focus.charI < 
+			this.nodes[this.focusNode].codeBox.str.strLength(
+				this.select.focus.line)
+		){
+			this.nodes[this.focusNode].codeBox.str.delChar(
+				this.select.focus.line, this.select.focus.charI+1);
+		}else if(
+			this.select.focus.line < 
+			this.nodes[this.focusNode].codeBox.str.count()
+		){
+			if(
+				this.nodes[this.focusNode].codeBox.str.strLength(
+					this.select.focus.line) + 
+				this.nodes[this.focusNode].codeBox.str.strLength(
+					this.select.focus.line+1) <=
+				NODE_WIDTH
+			){
+				let combine = 
+					this.nodes[this.focusNode].codeBox.str.get(
+						this.select.focus.line) + 
+					this.nodes[this.focusNode].codeBox.str.get(
+						this.select.focus.line+1);
+				this.nodes[this.focusNode].codeBox.str.set(
+					this.select.focus.line, combine);
+
+				this.nodes[this.focusNode].codeBox.str.del(
+					this.select.focus.line+1);
+			}
+		}
+	}
+
+	arrowDown(keyCode){
+
+	}
+
 	setSelection(append_enter_backspace_delete, char=""){
-		if(this.selectedNode == -1) return;
+		if(this.focusNode == -1) return;
 		if(append_enter_backspace_delete == 0){
-			this.nodes[this.selectedNode].codeBox.setChar(
+			this.nodes[this.focusNode].codeBox.str.addChar(
 				this.select.focus.line, this.select.focus.charI, char);
 			if(this.select.focus.charI < NODE_WIDTH)
 				this.select.focus.charI++;
@@ -710,7 +816,7 @@ class NodeContainer{
 	drawNodes(){
 		for(let i=0; i<this.nodes.length; i++){
 			if(this.nodes[i].nodeType == 1){
-				if(this.selectedNode == i)
+				if(this.focusNode == i)
 					this.nodes[i].drawNode(this.select);
 				else
 					this.nodes[i].drawNode(this.noSelect);
@@ -724,8 +830,7 @@ class NodeContainer{
 let canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
 
-ctx.strokeStyle = TRUE_WHITE;
-ctx.imageSmoothingEnabled = false;
+ctx.strokeStyle = WHITE;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 
 let allNodes = new NodeContainer([
@@ -762,39 +867,46 @@ canvas.addEventListener("mouseup", function(evt) {
 }, false);
 
 canvas.addEventListener("keypress", function(evt) {
-	let charCode = evt.keyCode;
+	// Required for cross-browser compatibility
+	let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
     let char = String.fromCharCode(charCode);
     if(ALLOWED_CHARS.test(char)){
     	char = char.toUpperCase();
-    	//allNodes.nodes[5].codeBox.setChar(0, allNodes.nodes[5].codeBox.stringLength(0), char);
-    	allNodes.setSelection(0, char);
+    	allNodes.addChar(char);
     }
-	
 }, false);
 canvas.addEventListener("keydown", function(evt) {
 	if(evt.keyCode == 13){ // Enter
-		allNodes.setSelection(1);
+		allNodes.newLine();
 	}else if(evt.keyCode == 8){ // Backspace
-		allNodes.setSelection(2);
+		allNodes.bakChar();
 	}else if(evt.keyCode == 46){ // Delete
-		allNodes.setSelection(3);
+		allNodes.delChar();
+	}else if(evt.keyCode == 37){ // Left
+		allNodes.arrowDown(0);
+	}else if(evt.keyCode == 38){ // Up
+		allNodes.arrowDown(1);
+	}else if(evt.keyCode == 39){ // Right
+		allNodes.arrowDown(2);
+	}else if(evt.keyCode == 40){ // Down
+		allNodes.arrowDown(3);
 	}
 }, false);
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-	allNodes.nodes[0].codeBox.setString(i, "testing " + i);
+	allNodes.nodes[0].codeBox.str.set(i, "testing " + i);
 }
-allNodes.nodes[0].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[0].codeBox.str.set(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-	allNodes.nodes[1].codeBox.setString(i, "testing " + (i+NODE_HEIGHT-1));
+	allNodes.nodes[1].codeBox.str.set(i, "testing " + (i+NODE_HEIGHT-1));
 }
-allNodes.nodes[1].codeBox.setString(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[1].codeBox.str.set(NODE_HEIGHT-1, "1: mov r#ght, righ");
 allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
-allNodes.nodes[2].memoryBox.setString(0, "254");
-allNodes.nodes[2].memoryBox.setString(1, "498");
-allNodes.nodes[2].memoryBox.setString(2, "782");
+allNodes.nodes[2].memoryBox.str.set(0, "254");
+allNodes.nodes[2].memoryBox.str.set(1, "498");
+allNodes.nodes[2].memoryBox.str.set(2, "782");
 
 function gameLoop() {
 	
@@ -803,14 +915,14 @@ function gameLoop() {
 	ctx.fillStyle = BLACK;
 	ctx.fill();
 
-	ctx.fillStyle = TRUE_WHITE;
+	ctx.fillStyle = WHITE;
 	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
 	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
 	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
 
 	allNodes.drawNodes();
 
-	ctx.fillStyle = WHITE;
+	ctx.fillStyle = DIM_WHITE;
 
 	requestAnimationFrame(gameLoop);
 }
