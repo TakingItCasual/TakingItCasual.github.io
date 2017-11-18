@@ -1,3 +1,4 @@
+"use strict";
 var tis100clone = (function(){
 
 const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
@@ -18,8 +19,8 @@ const BLACK = "#000000"; // Black
 const COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
 const INFO_GRAY = "#8D8D8D"; // Used for the ACC, BAK, etc.
 const SELECT_GRAY = "#ABABAB"; // Used for highlighting sections of code
-const ACTIVE_FOCUS = "#FBFBFB"; // Used for the bar over executing code
-const WAIT_FOCUS = "#9C9C9C"; // Used for the bar over stalled code
+const ACTIVE_EXEC = "#FBFBFB"; // Used for the bar over executing code
+const WAIT_EXEC = "#9C9C9C"; // Used for the bar over stalled code
 const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
 const LIGHT_RED = "#BF0D0D"; // Used for corruptNode's red bars and syntax error
 const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
@@ -190,8 +191,8 @@ class BoxCode extends BoxText{
 	drawAllLinesAndBars(select){
 		// Draws bar under currently executing line
 		if(this.currentLine != -1){ // Only false before the program is started
-			if(this.executable) ctx.fillStyle = ACTIVE_FOCUS;
-			else ctx.fillStyle = WAIT_FOCUS;
+			if(this.executable) ctx.fillStyle = ACTIVE_EXEC;
+			else ctx.fillStyle = WAIT_EXEC;
 			this.drawBar(
 				this.currentLine, 0, this.lineW, ctx.fillStyle, 3, 1
 			);
@@ -663,48 +664,48 @@ class NodeContainer{
 		}
 	}
 
-	movSelection(mPos, cont_start_end){
-		if(cont_start_end == 0){ // Mouse held down, mouse movement
+	mouseMove(mPos){ // Mouse held down, mouse movement
 
-		}else if(cont_start_end == 1){ // Left mouse button clicked
-			let boxX = 0;
-			let boxY = 0;
-			for(let i=0; i<=this.nodes.length; i++){
-				// No nodes were selected
-				if(i == this.nodes.length){
-					this.focusNode = -1;
-					break;
-				}
-				// codeBox only exists within computeNodes
-				if(this.nodes[i].nodeType != 1) continue;
-
-				boxX = this.nodes[i].codeBox.x + CHAR_GAP;
-				boxY = this.nodes[i].codeBox.y + 
-					this.nodes[i].codeBox.offsetY+CHAR_GAP - 
-					Math.floor(CHAR_GAP/2);
-				if(
-					mPos.x >= boxX && 
-					mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
-					mPos.y >= boxY && 
-					mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
-				){
-					this.focusNode = i;
-
-					this.select.focus.line = Math.min(
-						this.nodes[i].codeBox.str.count()-1,
-						Math.floor((mPos.y-boxY)/LINE_HEIGHT));
-
-					this.select.focus.charI = Math.min(
-						this.nodes[i].codeBox.str.strLength(
-							this.select.focus.line), 
-						Math.floor((mPos.x-boxX)/CHAR_WIDTH));
-
-					break;
-				}
+	}
+	lmbDown(mPos){ // Left mouse button clicked
+		let boxX = 0;
+		let boxY = 0;
+		for(let i=0; i<=this.nodes.length; i++){
+			// No nodes were selected
+			if(i == this.nodes.length){
+				this.focusNode = -1;
+				break;
 			}
-		}else if(cont_start_end == 2){ // Left mouse button released
+			// codeBox only exists within computeNodes
+			if(this.nodes[i].nodeType != 1) continue;
 
+			boxX = this.nodes[i].codeBox.x + CHAR_GAP;
+			boxY = this.nodes[i].codeBox.y + 
+				this.nodes[i].codeBox.offsetY+CHAR_GAP - 
+				Math.floor(CHAR_GAP/2);
+			if(
+				mPos.x >= boxX && 
+				mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
+				mPos.y >= boxY && 
+				mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
+			){
+				this.focusNode = i;
+
+				this.select.focus.line = Math.min(
+					this.nodes[i].codeBox.str.count()-1,
+					Math.floor((mPos.y-boxY)/LINE_HEIGHT));
+
+				this.select.focus.charI = Math.min(
+					this.nodes[i].codeBox.str.strLength(
+						this.select.focus.line), 
+					Math.floor((mPos.x-boxX)/CHAR_WIDTH));
+
+				break;
+			}
 		}
+	}
+	lmbUp(mPos){ // Left mouse button released
+
 	}
 
 	addChar(char){
@@ -715,13 +716,11 @@ class NodeContainer{
 		) return;
 		this.nodes[this.focusNode].codeBox.str.addChar(
 			this.select.focus.line, this.select.focus.charI, char);
-		this.select.focus.charI++;
+		this.select.focus.charI += 1;
 	}
 	newLine(){
 		if(this.nodes[this.focusNode].codeBox.str.count() >= NODE_HEIGHT) 
 			return; // Does nothing if line number is at maximum
-
-		debugger;
 
 		let distToEndOfLine = this.nodes[this.focusNode].codeBox.str.strLength(
 			this.select.focus.line) - this.select.focus.charI;
@@ -801,8 +800,35 @@ class NodeContainer{
 		}
 	}
 
-	arrowDown(keyCode){
+	arrowKey(keyCode){
+		if(keyCode == 0){ // Left
+			if(this.select.focus.charI > 0){
+				this.select.focus.charI -= 1;
+			}else if(this.select.focus.line > 0){
+				this.select.focus.line -= 1;
+				this.select.focus.charI = 
+					this.nodes[this.focusNode].codeBox.str.strLength(
+						this.select.focus.line);
+			}
+		}else if(keyCode == 1){ // Up
 
+		}else if(keyCode == 2){ // Right
+			if(
+				this.select.focus.charI < 
+				this.nodes[this.focusNode].codeBox.str.strLength(
+					this.select.focus.line)
+			){
+				this.select.focus.charI += 1;
+			}else if(
+				this.select.focus.line + 1 < 
+				this.nodes[this.focusNode].codeBox.str.count()
+			){
+				this.select.focus.line += 1;
+				this.select.focus.charI = 0;
+			}
+		}else if(keyCode == 3){ // Down
+			
+		}
 	}
 
 	setSelection(append_enter_backspace_delete, char=""){
@@ -855,20 +881,20 @@ function  getMousePos(canvas, evt) {
 
 let mPos = { x: 0, y: 0 } // Mouse position
 let mDown = false; // If the left mouse button is held down
-canvas.addEventListener("mousemove", function(evt) {
+window.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
-	if(mDown) allNodes.movSelection(mPos, 0);
+	if(mDown) allNodes.mouseMove(mPos);
 }, false);
-canvas.addEventListener("mousedown", function(evt) {
+window.addEventListener("mousedown", function(evt) {
 	mDown = true;
-	allNodes.movSelection(mPos, 1);
+	allNodes.lmbDown(mPos);
 }, false);
-canvas.addEventListener("mouseup", function(evt) {
+window.addEventListener("mouseup", function(evt) {
 	mDown = false;
-	allNodes.movSelection(mPos, 2);
+	allNodes.lmbUp(mPos);
 }, false);
 
-canvas.addEventListener("keypress", function(evt) {
+window.addEventListener("keypress", function(evt) {
 	// Required for cross-browser compatibility
 	let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
 	let char = String.fromCharCode(charCode);
@@ -877,22 +903,34 @@ canvas.addEventListener("keypress", function(evt) {
 		allNodes.addChar(char);
 	}
 }, false);
-canvas.addEventListener("keydown", function(evt) {
-	if(evt.keyCode == 13){ // Enter
-		allNodes.newLine();
-	}else if(evt.keyCode == 8){ // Backspace
-		allNodes.bakChar();
-	}else if(evt.keyCode == 46){ // Delete
-		allNodes.delChar();
-	}else if(evt.keyCode == 37){ // Left
-		allNodes.arrowDown(0);
-	}else if(evt.keyCode == 38){ // Up
-		allNodes.arrowDown(1);
-	}else if(evt.keyCode == 39){ // Right
-		allNodes.arrowDown(2);
-	}else if(evt.keyCode == 40){ // Down
-		allNodes.arrowDown(3);
+window.addEventListener("keydown", function(evt) {
+	// Prevent space and arrow keys from causing unwanted scrolling
+	if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1) {
+		evt.preventDefault();
 	}
+
+	switch(evt.keyCode){
+		case 13: allNodes.newLine(); // Enter
+			break;
+		case 32: allNodes.addChar(" "); // Space
+			break;
+		case  8: allNodes.bakChar(); // Backspace
+			break;
+		case 46: allNodes.delChar(); // Delete
+			break;
+		case 37: allNodes.arrowKey(0); // Left
+			break;
+		case 38: allNodes.arrowKey(1); // Up
+			break;
+		case 39: allNodes.arrowKey(2); // Right
+			break;
+		case 40: allNodes.arrowKey(3); // Down
+			break;
+	}
+}, false);
+window.addEventListener("onblur", function(evt) {
+	allNodes.focusNode = -1;
+	allNodes.select.reset();
 }, false);
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
