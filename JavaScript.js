@@ -1,5 +1,5 @@
 "use strict";
-var tis100clone = (function(){
+(function(){
 
 const NODE_WIDTH = 18; // Characters that will fit on a BoxCode's line
 const NODE_HEIGHT = 15; // Number of string lines in a node. Min: 14
@@ -13,7 +13,7 @@ const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
 const DIM_WHITE = "#C8C8C8"; // Used for the boxes and code
 const DESC_WHITE = "#B4B4B4" // Used for text not in a node
-const FOCUS_WHITE = "#E2E2E2"; // Used for that blinking thingy
+const CURSOR_WHITE = "#E2E2E2"; // Used for that blinking thingy
 const WHITE = "#FFFFFF"; // White
 const BLACK = "#000000"; // Black
 const COMMENT_GRAY = "#7A7A7A"; // Used for comments within code
@@ -53,51 +53,52 @@ class StringList{
 
 		let lineString = [];
 		lineString.push("");
-		this.count = function(){
+		this.strAdd = function(index){
+			lineString.splice(index+1, 0, "");
+		}
+		this.strDel = function(index){
+			if(index >= lineString.length) return;
+			if(lineString.length <= 1) return; // Last one shouldn't be removed
+			lineString.splice(index, 1);
+		}
+		this.strCount = function(){
 			return lineString.length;
 		}
-		this.get = function(index){
+		this.strGet = function(index){
 			if(index >= lineString.length) return "";
 			return lineString[index];
 		}
-		this.set = function(index, stringVar){
+		this.strSet = function(index, stringVar){
 			if(index >= this.maxLines) return; // Index out of range
 			while(index >= lineString.length) 
 				lineString.push(""); // Expand lineString
-			// The substr cuts the stringVar to prevent text overflow
+			// The substr crops the stringVar to prevent text overflow
 			lineString[index] = stringVar.substr(0, this.lineW);
-		}
-		this.addChar = function(index, charI, charVar){
-			if(index >= lineString.length) return;
-			if(charI > lineString[index].length) 
-				charI = lineString[index].length;
-			let str = lineString[index];
-			this.set(index, str.substr(0, charI) + charVar + str.substr(charI));
-		}
-		this.delChar = function(index, charI){
-			if(index >= lineString.length) return;
-			if(charI > lineString[index].length) return;
-			let str = lineString[index];
-			this.set(index, str.substr(0, charI-1) + str.substr(charI));
 		}
 		this.strLength = function(index){
 			if(index >= lineString.length) return 0;
 			return lineString[index].length;
 		}
-		this.add = function(index){
-			lineString.splice(index+1, 0, "");
-		}
-		this.del = function(index){
-			if(index >= lineString.length) return;
-			if(lineString.length <= 1) return; // Last one shouldn't be removed
-			lineString.splice(index, 1);
-		}
-		this.cut = function(index, charI){
+		this.strCut = function(index, charI){ // Cuts string charI from end
 			if(index >= lineString.length) return "";
 			if(charI > lineString[index].length) return "";
 			let cutStr = lineString[index].substr(-charI);
 			lineString[index] = lineString[index].slice(0, -charI);
 			return cutStr;
+		}
+		this.charAdd = function(index, charI, charVar){
+			if(index >= lineString.length) return;
+			if(charI > lineString[index].length) 
+				charI = lineString[index].length;
+			let str = lineString[index];
+			this.strSet(index, 
+				str.substr(0, charI) + charVar + str.substr(charI));
+		}
+		this.charDel = function(index, charI){
+			if(index >= lineString.length) return;
+			if(charI > lineString[index].length) return;
+			let str = lineString[index];
+			this.strSet(index, str.substr(0, charI-1) + str.substr(charI));
 		}
 	}
 }
@@ -129,7 +130,7 @@ class BoxText extends Box{
 		}
 		ctx.fillStyle = color;
 		ctx.fillText(
-			this.str.get(line), 
+			this.str.strGet(line), 
 			this.x+CHAR_GAP + offsetX, 
 			this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
 		);
@@ -154,7 +155,8 @@ class BoxText extends Box{
 // Used for when the user highlights text in their code
 class Selection{
 	constructor(){
-		this.focus = { line: -1, charI: 0 }; // Where the user is typing
+		// charI2 accounts for expected charI position during shorter lines
+		this.cursor = { line: -1, charI: 0, charI2: 0 }; // Cursor location
 		this.start = { line: -1, charI: 0 }; // Start of selection
 		this.end = { line: -1, charI: 0 }; // End of selection
 	}
@@ -174,7 +176,7 @@ class Selection{
 	}
 
 	reset(all){
-		if(all) this.focus = { line: -1, charI: 0 };
+		if(all) this.cursor = { line: -1, charI: 0 };
 		this.start = { line: -1, charI: 0 };
 		this.end = { line: -1, charI: 0 };
 	}
@@ -200,9 +202,9 @@ class BoxCode extends BoxText{
 
 		// Draws bars under selected text and the text itself
 		for(let i=0; i<this.maxLines; i++){ 
-			if(!this.str.get(i)) continue; // String is empty
+			if(!this.str.strGet(i)) continue; // String is empty
 
-			let commentStart = this.str.get(i).indexOf("#");
+			let commentStart = this.str.strGet(i).indexOf("#");
 			let selectStart = -1;
 			let selectEnd = -1;
 			// Draws bar under selected text
@@ -220,13 +222,13 @@ class BoxCode extends BoxText{
 		}
 
 		// Blinking thingy
-		if(this.currentLine == -1 && select.focus.line != -1){
+		if(this.currentLine == -1 && select.cursor.line != -1){
 			let time = new Date();
 			time = time.getTime() % 800;
 			if(time > 400){ // Get the blinking thingy to blink every 800ms
 				this.drawBar(
-					select.focus.line, select.focus.charI, 
-					select.focus.charI+1, FOCUS_WHITE
+					select.cursor.line, select.cursor.charI, 
+					select.cursor.charI+1, CURSOR_WHITE
 				);
 			}
 		}
@@ -253,41 +255,41 @@ class BoxCode extends BoxText{
 		let stringColor = []; // Color of the string_part
 
 		if(Math.min(commentStart, selectStart) > 0){
-			stringParts.push(this.str.get(line).substr(
+			stringParts.push(this.str.strGet(line).substr(
 				0, Math.min(commentStart, selectStart)));
 			stringStart.push(0);
 			stringColor.push(DIM_WHITE);
 		}
 		if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
 			if(commentStart > 0){
-				stringParts.push(this.str.get(line).substr(commentStart));
+				stringParts.push(this.str.strGet(line).substr(commentStart));
 				stringStart.push(commentStart);
 				stringColor.push(COMMENT_GRAY);
 			}else{
-				stringParts.push(this.str.get(line));
+				stringParts.push(this.str.strGet(line));
 				stringStart.push(0);
 				stringColor.push(COMMENT_GRAY);
 			}
 		}else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
 			if(selectStart > 0){
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
 				stringColor.push(WHITE);
 
 				if(selectEnd < this.str.strLength(line)){
-					stringParts.push(this.str.get(line).substr(selectEnd));
+					stringParts.push(this.str.strGet(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(DIM_WHITE);
 				}
 			}else{
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
 				stringColor.push(WHITE);
 
 				if(selectEnd < this.str.strLength(line)){
-					stringParts.push(this.str.get(line).substr(selectEnd));
+					stringParts.push(this.str.strGet(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(DIM_WHITE);
 				}
@@ -295,52 +297,52 @@ class BoxCode extends BoxText{
 		}else{
 			if(commentStart <= selectStart){
 				if(commentStart < selectStart){
-					stringParts.push(this.str.get(line).substr(
+					stringParts.push(this.str.strGet(line).substr(
 						commentStart, selectStart));
 					stringStart.push(commentStart);
 					stringColor.push(COMMENT_GRAY);
 				}
 
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
 				stringColor.push(DIM_WHITE);
 
 				if(selectEnd < this.str.strLength(line)){
-					stringParts.push(this.str.get(line).substr(selectEnd));
+					stringParts.push(this.str.strGet(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(COMMENT_GRAY);
 				}
 			}else if(selectStart < commentStart && commentStart < selectEnd){
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					selectStart, commentStart));
 				stringStart.push(selectStart);
 				stringColor.push(WHITE);
 
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					commentStart, selectEnd));
 				stringStart.push(commentStart);
 				stringColor.push(DIM_WHITE);
 
 				if(selectEnd < this.str.strLength(line)){
-					stringParts.push(this.str.get(line).substr(selectEnd));
+					stringParts.push(this.str.strGet(line).substr(selectEnd));
 					stringStart.push(selectEnd);
 					stringColor.push(COMMENT_GRAY);
 				}
 			}else if(commentStart >= selectEnd){
-				stringParts.push(this.str.get(line).substr(
+				stringParts.push(this.str.strGet(line).substr(
 					selectStart, selectEnd));
 				stringStart.push(selectStart);
 				stringColor.push(WHITE);
 
 				if(commentStart > selectEnd){
-					stringParts.push(this.str.get(line).substr(
+					stringParts.push(this.str.strGet(line).substr(
 						selectEnd, commentStart));
 					stringStart.push(commentStart);
 					stringColor.push(DIM_WHITE);
 				}
 
-				stringParts.push(this.str.get(line).substr(commentStart));
+				stringParts.push(this.str.strGet(line).substr(commentStart));
 				stringStart.push(commentStart);
 				stringColor.push(COMMENT_GRAY);
 			}
@@ -371,8 +373,8 @@ class CorruptNode{
 			true
 		);
 
-		this.descBox.str.set(4, "COMMUNICATION");
-		this.descBox.str.set(5, "FAILURE");
+		this.descBox.str.strSet(4, "COMMUNICATION");
+		this.descBox.str.strSet(5, "FAILURE");
 		
 		const remainder = (this.descBox.h-2)%4;
 		const sideX = x+this.descBox.w + 2;
@@ -456,7 +458,7 @@ class ComputeNode{
 			if(expand == 0) return 0;
 			boxNum *= 2;
 			let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
-			if((expand-boxNum-1)%(INFO_BOXES*2) == 0) total--;
+			if((expand-boxNum-1)%(INFO_BOXES*2) == 0) total -= 1;
 			if(divide) total = Math.floor(total/2);
 			return total;
 		} // See expand.txt to see the desired I/O behavior
@@ -470,7 +472,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(0, true), true
 		);
 		this.ACC = 0;
-		this.accBox.str.set(0, "ACC");
+		this.accBox.str.strSet(0, "ACC");
 		
 		// Initialize the BAK box
 		this.bakBox = new BoxText(
@@ -481,7 +483,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(1, true), true
 		);
 		this.BAK = 0;
-		this.bakBox.str.set(0, "BAK");
+		this.bakBox.str.strSet(0, "BAK");
 		
 		// Initialize the LAST box
 		this.lastBox = new BoxText(
@@ -492,7 +494,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(2, true), true
 		);
 		this.LAST = null;
-		this.lastBox.str.set(0, "LAST");
+		this.lastBox.str.strSet(0, "LAST");
 		
 		// Initialize the MODE box
 		this.modeBox = new BoxText(
@@ -503,7 +505,7 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(3, true), true
 		);
 		this.MODE = "IDLE";
-		this.modeBox.str.set(0, "MODE");
+		this.modeBox.str.strSet(0, "MODE");
 		
 		// Initialize the IDLE box
 		this.idleBox = new BoxText(
@@ -514,14 +516,14 @@ class ComputeNode{
 			sizeInit.offsetY + expandCalc(4, true), true
 		);
 		this.IDLE = 0;
-		this.idleBox.str.set(0, "IDLE");
+		this.idleBox.str.strSet(0, "IDLE");
 
 		this.nodeBox = new Box(
 			x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
 		);
 	}
 	
-	drawNode(select){
+	drawNode(select = new Selection()){
 		this.nodeBox.drawBox(DIM_WHITE);
 		
 		// Draws the editable codeBox and all relevant bars
@@ -531,16 +533,16 @@ class ComputeNode{
 		// Draws the ACC box
 		this.accBox.drawBox(DIM_WHITE);
 		this.accBox.drawLine(0, INFO_GRAY);
-		this.accBox.str.set(1, this.ACC.toString());
+		this.accBox.str.strSet(1, this.ACC.toString());
 		this.accBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the BAK box
 		this.bakBox.drawBox(DIM_WHITE);
 		this.bakBox.drawLine(0, INFO_GRAY);
 		if(this.BAK.toString().length + 2 <= this.bakBox.lineW){
-			this.bakBox.str.set(1, "(" + this.BAK.toString() + ")");
+			this.bakBox.str.strSet(1, "(" + this.BAK.toString() + ")");
 		}else{
-			this.bakBox.str.set(1, this.BAK.toString());
+			this.bakBox.str.strSet(1, this.BAK.toString());
 		}
 		this.bakBox.drawLine(1, DIM_WHITE);
 		
@@ -548,22 +550,22 @@ class ComputeNode{
 		this.lastBox.drawBox(DIM_WHITE);
 		this.lastBox.drawLine(0, INFO_GRAY);
 		if(this.LAST){
-			this.lastBox.str.set(1, this.LAST.toString());
+			this.lastBox.str.strSet(1, this.LAST.toString());
 		}else{
-			this.lastBox.str.set(1, "N/A");
+			this.lastBox.str.strSet(1, "N/A");
 		}
 		this.lastBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the MODE box
 		this.modeBox.drawBox(DIM_WHITE);
 		this.modeBox.drawLine(0, INFO_GRAY);
-		this.modeBox.str.set(1, this.MODE.toString());
+		this.modeBox.str.strSet(1, this.MODE.toString());
 		this.modeBox.drawLine(1, DIM_WHITE);
 		
 		// Draws the IDLE box
 		this.idleBox.drawBox(DIM_WHITE);
 		this.idleBox.drawLine(0, INFO_GRAY);
-		this.idleBox.str.set(1, this.IDLE.toString() + "%");
+		this.idleBox.str.strSet(1, this.IDLE.toString() + "%");
 		this.idleBox.drawLine(1, DIM_WHITE);
 	}
 	
@@ -589,7 +591,7 @@ class StackMemNode{
 			sizeInit.offsetY, 
 			true
 		);
-		this.descBox.str.set(7, "STACK MEMORY NODE");
+		this.descBox.str.strSet(7, "STACK MEMORY NODE");
 		
 		this.memoryBox = new BoxText(
 			x+this.descBox.w+4, y+2, 
@@ -620,7 +622,7 @@ class StackMemNode{
 		// Prints out each value in memory
 		for(let i=0; i<NODE_HEIGHT; i++){
 			// There shouldn't be any lower ones if the current line is empty
-			if(!this.memoryBox.str.get(i)) break;
+			if(!this.memoryBox.str.strGet(i)) break;
 			this.memoryBox.drawLine(i, DIM_WHITE);
 		}
 	}
@@ -632,9 +634,11 @@ class NodeContainer{
 		this.nodesW = nodesType[0].length; // Width of table of nodes
 		this.nodesH = nodesType.length; // Height of table of nodes
 
-		this.focusNode = -1; // Indicates which node the user is focused on
-		this.noSelect = new Selection(); // Passed to unselected nodes
-		this.select = new Selection(); // Passed to the focused node
+		this.focusNodeI = -1; // Indicates which node the user is focused on
+		this.focusNode = nodesType; // Used as an object reference (redefined)
+
+		this.select = new Selection(); // Passed to the currently focused node
+		this.cursor = this.select.cursor; // Used as an object reference
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -673,7 +677,7 @@ class NodeContainer{
 		for(let i=0; i<=this.nodes.length; i++){
 			// No nodes were selected
 			if(i == this.nodes.length){
-				this.focusNode = -1;
+				this.focusNodeI = -1;
 				break;
 			}
 			// codeBox only exists within computeNodes
@@ -688,16 +692,17 @@ class NodeContainer{
 				mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
 				mPos.y >= boxY && 
 				mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
-			){
-				this.focusNode = i;
+			){ // Collision detection
+				this.focusNodeI = i;
+				// Huzzah for object references
+				this.focusNode = this.nodes[this.focusNodeI].codeBox.str;
 
-				this.select.focus.line = Math.min(
-					this.nodes[i].codeBox.str.count()-1,
+				this.cursor.line = Math.min(
+					this.nodes[i].codeBox.str.strCount()-1,
 					Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
-				this.select.focus.charI = Math.min(
-					this.nodes[i].codeBox.str.strLength(
-						this.select.focus.line), 
+				this.cursor.charI = Math.min(
+					this.nodes[i].codeBox.str.strLength(this.cursor.line), 
 					Math.floor((mPos.x-boxX)/CHAR_WIDTH));
 
 				break;
@@ -709,122 +714,89 @@ class NodeContainer{
 	}
 
 	addChar(char){
-		if(this.focusNode == -1) return;
-		if(
-			this.nodes[this.focusNode].codeBox.str.strLength(
-				this.select.focus.line) >= NODE_WIDTH
-		) return;
-		this.nodes[this.focusNode].codeBox.str.addChar(
-			this.select.focus.line, this.select.focus.charI, char);
-		this.select.focus.charI += 1;
+		if(this.focusNodeI == -1) return;
+		if(this.focusNode.strLength(this.cursor.line) >= NODE_WIDTH)
+			return;
+		this.focusNode.charAdd(this.cursor.line, this.cursor.charI, char);
+		this.cursor.charI += 1;
 	}
 	newLine(){
-		if(this.nodes[this.focusNode].codeBox.str.count() >= NODE_HEIGHT) 
+		if(this.focusNode.strCount() >= NODE_HEIGHT) 
 			return; // Does nothing if line number is at maximum
 
-		let distToEndOfLine = this.nodes[this.focusNode].codeBox.str.strLength(
-			this.select.focus.line) - this.select.focus.charI;
+		let distToEndOfLine = this.focusNode.strLength(
+			this.cursor.line) - this.cursor.charI;
 
-		this.nodes[this.focusNode].codeBox.str.add(this.select.focus.line);
-		this.select.focus.line += 1;
-		this.select.focus.charI = 0;
+		this.focusNode.strAdd(this.cursor.line);
+		this.cursor.line += 1;
+		this.cursor.charI = 0;
 
-		if(distToEndOfLine > 0){ // Focus not at the end of the line
-			let strToMove = this.nodes[this.focusNode].codeBox.str.cut(
-				this.select.focus.line-1, distToEndOfLine);
-			this.nodes[this.focusNode].codeBox.str.set(
-				this.select.focus.line, strToMove);
+		if(distToEndOfLine > 0){ // Cursor not at the end of the line
+			let strToMove = this.focusNode.strCut(
+				this.cursor.line-1, distToEndOfLine);
+			this.focusNode.strSet(this.cursor.line, strToMove);
 		}
 	}
 	bakChar(){
-		if(this.select.focus.charI > 0){
-			this.nodes[this.focusNode].codeBox.str.delChar(
-				this.select.focus.line, this.select.focus.charI);
-			this.select.focus.charI -= 1;
-		}else if(this.select.focus.line > 0){ // Prevent backspace at node start
+		if(this.cursor.charI > 0){
+			this.focusNode.charDel(this.cursor.line, this.cursor.charI);
+			this.cursor.charI -= 1;
+		}else if(this.cursor.line > 0){
 			if(
-				this.nodes[this.focusNode].codeBox.str.strLength(
-					this.select.focus.line) + 
-				this.nodes[this.focusNode].codeBox.str.strLength(
-					this.select.focus.line-1) <=
+				this.focusNode.strLength(this.cursor.line) + 
+				this.focusNode.strLength(this.cursor.line-1) <=
 				NODE_WIDTH
 			){
-				this.select.focus.line -= 1;
-				this.select.focus.charI = 
-					this.nodes[this.focusNode].codeBox.str.strLength(
-						this.select.focus.line);
+				this.cursor.line -= 1;
+				this.cursor.charI = this.focusNode.strLength(this.cursor.line);
 
 				let combine = 
-					this.nodes[this.focusNode].codeBox.str.get(
-						this.select.focus.line) + 
-					this.nodes[this.focusNode].codeBox.str.get(
-						this.select.focus.line+1);
-				this.nodes[this.focusNode].codeBox.str.set(
-					this.select.focus.line, combine);
+					this.focusNode.strGet(this.cursor.line) + 
+					this.focusNode.strGet(this.cursor.line+1);
+				this.focusNode.strSet(this.cursor.line, combine);
 
-				this.nodes[this.focusNode].codeBox.str.del(
-					this.select.focus.line+1);
+				this.focusNode.strDel(this.cursor.line+1);
 			}
 		}
 	}
 	delChar(){
-		if(
-			this.select.focus.charI < 
-			this.nodes[this.focusNode].codeBox.str.strLength(
-				this.select.focus.line)
-		){
-			this.nodes[this.focusNode].codeBox.str.delChar(
-				this.select.focus.line, this.select.focus.charI+1);
-		}else if(
-			this.select.focus.line < 
-			this.nodes[this.focusNode].codeBox.str.count()
-		){
+		if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
+			this.focusNode.charDel(this.cursor.line, this.cursor.charI+1);
+		}else if(this.cursor.line < this.focusNode.strCount()){
 			if(
-				this.nodes[this.focusNode].codeBox.str.strLength(
-					this.select.focus.line) + 
-				this.nodes[this.focusNode].codeBox.str.strLength(
-					this.select.focus.line+1) <=
+				this.focusNode.strLength(this.cursor.line) + 
+				this.focusNode.strLength(this.cursor.line+1) <=
 				NODE_WIDTH
 			){
 				let combine = 
-					this.nodes[this.focusNode].codeBox.str.get(
-						this.select.focus.line) + 
-					this.nodes[this.focusNode].codeBox.str.get(
-						this.select.focus.line+1);
-				this.nodes[this.focusNode].codeBox.str.set(
-					this.select.focus.line, combine);
+					this.focusNode.strGet(this.cursor.line) + 
+					this.focusNode.strGet(this.cursor.line+1);
+				this.focusNode.strSet(this.cursor.line, combine);
 
-				this.nodes[this.focusNode].codeBox.str.del(
-					this.select.focus.line+1);
+				this.focusNode.strDel(this.cursor.line+1);
 			}
 		}
 	}
 
 	arrowKey(keyCode){
 		if(keyCode == 0){ // Left
-			if(this.select.focus.charI > 0){
-				this.select.focus.charI -= 1;
-			}else if(this.select.focus.line > 0){
-				this.select.focus.line -= 1;
-				this.select.focus.charI = 
-					this.nodes[this.focusNode].codeBox.str.strLength(
-						this.select.focus.line);
+			if(this.cursor.charI > 0){
+				this.cursor.charI -= 1;
+			}else if(this.cursor.line > 0){
+				this.cursor.line -= 1;
+				this.cursor.charI = this.focusNode.strLength(this.cursor.line);
 			}
 		}else if(keyCode == 1){ // Up
 
 		}else if(keyCode == 2){ // Right
-			if(
-				this.select.focus.charI < 
-				this.nodes[this.focusNode].codeBox.str.strLength(
-					this.select.focus.line)
-			){
-				this.select.focus.charI += 1;
+			if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
+				this.cursor.charI += 1;
 			}else if(
-				this.select.focus.line + 1 < 
-				this.nodes[this.focusNode].codeBox.str.count()
+				this.cursor.line + 1 < 
+				this.focusNode.strCount()
 			){
-				this.select.focus.line += 1;
-				this.select.focus.charI = 0;
+				this.cursor.line += 1;
+				this.cursor.charI = 0;
 			}
 		}else if(keyCode == 3){ // Down
 			
@@ -832,25 +804,17 @@ class NodeContainer{
 	}
 
 	setSelection(append_enter_backspace_delete, char=""){
-		if(this.focusNode == -1) return;
+		if(this.focusNodeI == -1) return;
 		if(append_enter_backspace_delete == 0){
-			this.nodes[this.focusNode].codeBox.str.addChar(
-				this.select.focus.line, this.select.focus.charI, char);
-			if(this.select.focus.charI < NODE_WIDTH)
-				this.select.focus.charI++;
+			this.focusNode.charAdd(this.cursor.line, this.cursor.charI, char);
+			if(this.cursor.charI < NODE_WIDTH) this.cursor.charI += 1;
 		}
 	}
 
 	drawNodes(){
 		for(let i=0; i<this.nodes.length; i++){
-			if(this.nodes[i].nodeType == 1){
-				if(this.focusNode == i)
-					this.nodes[i].drawNode(this.select);
-				else
-					this.nodes[i].drawNode(this.noSelect);
-			}else{
-				this.nodes[i].drawNode();
-			}
+			if(this.focusNodeI == i) this.nodes[i].drawNode(this.select);
+			else this.nodes[i].drawNode();
 		}
 	}
 }
@@ -898,6 +862,11 @@ window.addEventListener("keypress", function(evt) {
 	// Required for cross-browser compatibility
 	let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
 	let char = String.fromCharCode(charCode);
+
+	// Prevents Firefox from opening quick find
+	if(["'", "/"].indexOf(char) > -1)
+		evt.preventDefault();
+
 	if(ALLOWED_CHARS.test(char)){
 		char = char.toUpperCase();
 		allNodes.addChar(char);
@@ -905,9 +874,8 @@ window.addEventListener("keypress", function(evt) {
 }, false);
 window.addEventListener("keydown", function(evt) {
 	// Prevent space and arrow keys from causing unwanted scrolling
-	if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1) {
+	if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1)
 		evt.preventDefault();
-	}
 
 	switch(evt.keyCode){
 		case 13: allNodes.newLine(); // Enter
@@ -929,36 +897,36 @@ window.addEventListener("keydown", function(evt) {
 	}
 }, false);
 window.addEventListener("onblur", function(evt) {
-	allNodes.focusNode = -1;
+	allNodes.cursorNode = -1;
 	allNodes.select.reset();
 }, false);
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-	allNodes.nodes[0].codeBox.str.set(i, "testing " + i);
+	allNodes.nodes[0].codeBox.str.strSet(i, "testing " + i);
 }
-allNodes.nodes[0].codeBox.str.set(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[0].codeBox.str.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-	allNodes.nodes[1].codeBox.str.set(i, "testing " + (i+NODE_HEIGHT-1));
+	allNodes.nodes[1].codeBox.str.strSet(i, "testing " + (i+NODE_HEIGHT-1));
 }
-allNodes.nodes[1].codeBox.str.set(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[1].codeBox.str.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
 allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
 
-allNodes.nodes[2].memoryBox.str.set(0, "254");
-allNodes.nodes[2].memoryBox.str.set(1, "498");
-allNodes.nodes[2].memoryBox.str.set(2, "782");
+allNodes.nodes[2].memoryBox.str.strSet(0, "254");
+allNodes.nodes[2].memoryBox.str.strSet(1, "498");
+allNodes.nodes[2].memoryBox.str.strSet(2, "782");
 
 function gameLoop() {
 	
 	ctx.beginPath();
-	ctx.rect(0, 0, canvas.width, canvas.height);
 	ctx.fillStyle = BLACK;
-	ctx.fill();
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	ctx.fillStyle = WHITE;
 	ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
 	ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
-	ctx.fillText("!\"#$%&'()*+,-./:;<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*2);
+	ctx.fillText("!\"#$%&'()*+,-./:;", 10, 22+LINE_HEIGHT*2);
+	ctx.fillText("<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*3);
 
 	allNodes.drawNodes();
 
