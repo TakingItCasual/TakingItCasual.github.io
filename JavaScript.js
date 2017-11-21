@@ -58,7 +58,7 @@ class StringList{
 		}
 		this.strDel = function(index){
 			if(index >= lineString.length) return;
-			if(lineString.length <= 1) return; // Last one shouldn't be removed
+			if(lineString.length <= 1) return; // Don't want an empty lineString
 			lineString.splice(index, 1);
 		}
 		this.strCount = function(){
@@ -159,6 +159,9 @@ class Selection{
 		this.cursor = { line: -1, charI: 0, charI2: 0 }; // Cursor location
 		this.start = { line: -1, charI: 0 }; // Start of selection
 		this.end = { line: -1, charI: 0 }; // End of selection
+
+		// Ensures the blinking thingy doesn't fade when it moves around
+		this.cursorTime = new Date().getTime();
 	}
 
 	lineSelected(line){
@@ -175,10 +178,17 @@ class Selection{
 		return false;
 	}
 
-	reset(all){
-		if(all) this.cursor = { line: -1, charI: 0 };
+	cursorMove(){
+		this.cursorTime = new Date().getTime();
+	}
+
+	resetSelection(){
 		this.start = { line: -1, charI: 0 };
 		this.end = { line: -1, charI: 0 };
+	}
+	focusLost(){
+		if(all) this.cursor = { line: -1, charI: 0, charI2: 0 };
+		resetSelection();
 	}
 }
 // Can divide a line into different colors for comments and selection
@@ -196,7 +206,8 @@ class BoxCode extends BoxText{
 			if(this.executable) ctx.fillStyle = ACTIVE_EXEC;
 			else ctx.fillStyle = WAIT_EXEC;
 			this.drawBar(
-				this.currentLine, 0, this.lineW, ctx.fillStyle, 3, 1
+				this.currentLine, 0, this.lineW, ctx.fillStyle, 
+				CHAR_GAP, CHAR_GAP-2
 			);
 		}
 
@@ -233,7 +244,7 @@ class BoxCode extends BoxText{
 			}
 		}
 	}
-	// Draws lines containing comments, using another color for the comment
+	// Draws text lines, using seperate coloring for comments/selection
 	drawSplitLine(line, commentStart, selectStart, selectEnd){
 		// Only one color needed if executing, or if no comments/selections
 		if(
@@ -685,7 +696,7 @@ class NodeContainer{
 
 			boxX = this.nodes[i].codeBox.x + CHAR_GAP;
 			boxY = this.nodes[i].codeBox.y + 
-				this.nodes[i].codeBox.offsetY+CHAR_GAP - 
+				this.nodes[i].codeBox.offsetY + CHAR_GAP - 
 				Math.floor(CHAR_GAP/2);
 			if(
 				mPos.x >= boxX && 
@@ -715,17 +726,16 @@ class NodeContainer{
 
 	addChar(char){
 		if(this.focusNodeI == -1) return;
-		if(this.focusNode.strLength(this.cursor.line) >= NODE_WIDTH)
-			return;
+		if(this.focusNode.strLength(this.cursor.line) >= NODE_WIDTH) return;
+
 		this.focusNode.charAdd(this.cursor.line, this.cursor.charI, char);
 		this.cursor.charI += 1;
 	}
 	newLine(){
-		if(this.focusNode.strCount() >= NODE_HEIGHT) 
-			return; // Does nothing if line number is at maximum
+		if(this.focusNode.strCount() >= NODE_HEIGHT) return;
 
-		let distToEndOfLine = this.focusNode.strLength(
-			this.cursor.line) - this.cursor.charI;
+		let distToEndOfLine = 
+			this.focusNode.strLength(this.cursor.line) - this.cursor.charI;
 
 		this.focusNode.strAdd(this.cursor.line);
 		this.cursor.line += 1;
@@ -743,17 +753,17 @@ class NodeContainer{
 			this.cursor.charI -= 1;
 		}else if(this.cursor.line > 0){
 			if(
-				this.focusNode.strLength(this.cursor.line) + 
-				this.focusNode.strLength(this.cursor.line-1) <=
+				this.focusNode.strLength(this.cursor.line-1) + 
+				this.focusNode.strLength(this.cursor.line) <=
 				NODE_WIDTH
 			){
 				this.cursor.line -= 1;
 				this.cursor.charI = this.focusNode.strLength(this.cursor.line);
 
-				let combine = 
+				let combinedStr = 
 					this.focusNode.strGet(this.cursor.line) + 
 					this.focusNode.strGet(this.cursor.line+1);
-				this.focusNode.strSet(this.cursor.line, combine);
+				this.focusNode.strSet(this.cursor.line, combinedStr);
 
 				this.focusNode.strDel(this.cursor.line+1);
 			}
@@ -768,10 +778,10 @@ class NodeContainer{
 				this.focusNode.strLength(this.cursor.line+1) <=
 				NODE_WIDTH
 			){
-				let combine = 
+				let combinedStr = 
 					this.focusNode.strGet(this.cursor.line) + 
 					this.focusNode.strGet(this.cursor.line+1);
-				this.focusNode.strSet(this.cursor.line, combine);
+				this.focusNode.strSet(this.cursor.line, combinedStr);
 
 				this.focusNode.strDel(this.cursor.line+1);
 			}
@@ -791,23 +801,12 @@ class NodeContainer{
 		}else if(keyCode == 2){ // Right
 			if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
 				this.cursor.charI += 1;
-			}else if(
-				this.cursor.line + 1 < 
-				this.focusNode.strCount()
-			){
+			}else if(this.cursor.line + 1 < this.focusNode.strCount()){
 				this.cursor.line += 1;
 				this.cursor.charI = 0;
 			}
 		}else if(keyCode == 3){ // Down
 			
-		}
-	}
-
-	setSelection(append_enter_backspace_delete, char=""){
-		if(this.focusNodeI == -1) return;
-		if(append_enter_backspace_delete == 0){
-			this.focusNode.charAdd(this.cursor.line, this.cursor.charI, char);
-			if(this.cursor.charI < NODE_WIDTH) this.cursor.charI += 1;
 		}
 	}
 
@@ -896,9 +895,9 @@ window.addEventListener("keydown", function(evt) {
 			break;
 	}
 }, false);
-window.addEventListener("onblur", function(evt) {
-	allNodes.cursorNode = -1;
-	allNodes.select.reset();
+window.addEventListener("blur", function(evt) {
+	allNodes.focusNodeI = -1;
+	allNodes.select.focusLost();
 }, false);
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
@@ -929,8 +928,6 @@ function gameLoop() {
 	ctx.fillText("<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*3);
 
 	allNodes.drawNodes();
-
-	ctx.fillStyle = DIM_WHITE;
 
 	requestAnimationFrame(gameLoop);
 }

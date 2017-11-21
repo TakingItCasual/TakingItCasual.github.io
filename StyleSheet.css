@@ -6,22 +6,21 @@
 	font-weight: bold;
 }
 
-body {
-	padding: 0;
-	margin: 0;
-}
 html {
 	position: relative;
 	background-color: #DDDDDD;
 	font-family: tis-100-copy;
-	padding: 0;
 	margin: 0;
+	padding: 0;
+}
+body {
+	position: relative;
+	margin: 0;
+	padding: 0;
 }
 canvas#game {
 	position: relative;
-	padding-left: 0;
-	padding-right: 0;
-	margin-left: auto;
-	margin-right: auto;
+	padding: 0;
+	margin: 0 auto;
 	display: block;
 }
