@@ -61,8 +61,8 @@ class StringList{
 			if(lineString.length <= 1) return; // Don't want an empty lineString
 			lineString.splice(index, 1);
 		}
-		this.strCount = function(){
-			return lineString.length;
+		this.strCount = function(is_zero_indexed){
+			return is_zero_indexed ? lineString.length - 1 : lineString.length;
 		}
 		this.strGet = function(index){
 			if(index >= lineString.length) return "";
@@ -155,13 +155,12 @@ class BoxText extends Box{
 // Used for when the user highlights text in their code
 class Selection{
 	constructor(){
-		// charI2 accounts for expected charI position during shorter lines
-		this.cursor = { line: -1, charI: 0, charI2: 0 }; // Cursor location
+		this.cursor = { line: -1, charI: 0 }; // Cursor location
 		this.start = { line: -1, charI: 0 }; // Start of selection
 		this.end = { line: -1, charI: 0 }; // End of selection
 
 		// Ensures the blinking thingy doesn't fade when it moves around
-		this.cursorTime = new Date().getTime();
+		this.cursorBlink = Date.now();
 	}
 
 	lineSelected(line){
@@ -178,17 +177,16 @@ class Selection{
 		return false;
 	}
 
-	cursorMove(){
-		this.cursorTime = new Date().getTime();
-	}
-
 	resetSelection(){
-		this.start = { line: -1, charI: 0 };
-		this.end = { line: -1, charI: 0 };
+		this.start.line = -1;
+		this.start.charI = 0;
+		this.end.line = -1;
+		this.end.charI = 0;
 	}
 	focusLost(){
-		if(all) this.cursor = { line: -1, charI: 0, charI2: 0 };
-		resetSelection();
+		this.cursor.line = -1;
+		this.cursor.charI = 0;
+		this.resetSelection();
 	}
 }
 // Can divide a line into different colors for comments and selection
@@ -211,7 +209,7 @@ class BoxCode extends BoxText{
 			);
 		}
 
-		// Draws bars under selected text and the text itself
+		// Draws bars under selected text, as well as the text itself
 		for(let i=0; i<this.maxLines; i++){ 
 			if(!this.str.strGet(i)) continue; // String is empty
 
@@ -234,9 +232,8 @@ class BoxCode extends BoxText{
 
 		// Blinking thingy
 		if(this.currentLine == -1 && select.cursor.line != -1){
-			let time = new Date();
-			time = time.getTime() % 800;
-			if(time > 400){ // Get the blinking thingy to blink every 800ms
+			let blinkTime = (Date.now() - select.cursorBlink) % 800;
+			if(blinkTime < 400){ // Get the blinking thingy to blink every 800ms
 				this.drawBar(
 					select.cursor.line, select.cursor.charI, 
 					select.cursor.charI+1, CURSOR_WHITE
@@ -246,17 +243,17 @@ class BoxCode extends BoxText{
 	}
 	// Draws text lines, using seperate coloring for comments/selection
 	drawSplitLine(line, commentStart, selectStart, selectEnd){
-		// Only one color needed if executing, or if no comments/selections
 		if(
 			this.currentLine == line || 
 			(commentStart == -1 && selectStart == -1)
-		){
+		){ // Only a single color will be used to draw the text
 			if(this.currentLine == line) ctx.fillStyle = BLACK;
 			else ctx.fillStyle = DIM_WHITE;
 
 			this.drawLine(line);
 			return;
 		}
+
 		// To ensure that the Math.min calculations work properly
 		if(commentStart == -1) commentStart = NODE_WIDTH;
 		if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
@@ -650,6 +647,10 @@ class NodeContainer{
 
 		this.select = new Selection(); // Passed to the currently focused node
 		this.cursor = this.select.cursor; // Used as an object reference
+		this.prevCursor = { 
+			line: this.cursor.line, 
+			charI: this.cursor.charI 
+		} // Used for resetting the blinking thingy when the cursor moves
 
 		let sizeInit = {
 			lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -679,6 +680,23 @@ class NodeContainer{
 		}
 	}
 
+	initCompareCursors(){
+		if(this.focusNodeI == -1) return;
+
+		this.prevCursor.line = this.cursor.line;
+		this.prevCursor.charI = this.cursor.charI;
+	}
+	compareCursors(){
+		if(this.focusNodeI == -1) return;
+
+		if(
+			this.prevCursor.line != this.cursor.line || 
+			this.prevCursor.charI != this.cursor.charI
+		){
+			this.select.cursorBlink = Date.now();
+		}
+	}
+
 	mouseMove(mPos){ // Mouse held down, mouse movement
 
 	}
@@ -695,9 +713,8 @@ class NodeContainer{
 			if(this.nodes[i].nodeType != 1) continue;
 
 			boxX = this.nodes[i].codeBox.x + CHAR_GAP;
-			boxY = this.nodes[i].codeBox.y + 
-				this.nodes[i].codeBox.offsetY + CHAR_GAP - 
-				Math.floor(CHAR_GAP/2);
+			boxY = this.nodes[i].codeBox.y + CHAR_GAP + 
+				this.nodes[i].codeBox.offsetY - Math.floor(CHAR_GAP/2);
 			if(
 				mPos.x >= boxX && 
 				mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
@@ -709,7 +726,7 @@ class NodeContainer{
 				this.focusNode = this.nodes[this.focusNodeI].codeBox.str;
 
 				this.cursor.line = Math.min(
-					this.nodes[i].codeBox.str.strCount()-1,
+					this.nodes[i].codeBox.str.strCount(true),
 					Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
 				this.cursor.charI = Math.min(
@@ -732,7 +749,7 @@ class NodeContainer{
 		this.cursor.charI += 1;
 	}
 	newLine(){
-		if(this.focusNode.strCount() >= NODE_HEIGHT) return;
+		if(this.focusNode.strCount(false) >= NODE_HEIGHT) return;
 
 		let distToEndOfLine = 
 			this.focusNode.strLength(this.cursor.line) - this.cursor.charI;
@@ -772,7 +789,7 @@ class NodeContainer{
 	delChar(){
 		if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
 			this.focusNode.charDel(this.cursor.line, this.cursor.charI+1);
-		}else if(this.cursor.line < this.focusNode.strCount()){
+		}else if(this.cursor.line < this.focusNode.strCount(true)){
 			if(
 				this.focusNode.strLength(this.cursor.line) + 
 				this.focusNode.strLength(this.cursor.line+1) <=
@@ -797,16 +814,39 @@ class NodeContainer{
 				this.cursor.charI = this.focusNode.strLength(this.cursor.line);
 			}
 		}else if(keyCode == 1){ // Up
-
+			if(this.cursor.line > 0){
+				this.cursor.line -= 1;
+				if(
+					this.cursor.charI > 
+					this.focusNode.strLength(this.cursor.line)
+				){
+					this.cursor.charI = 
+						this.focusNode.strLength(this.cursor.line);
+				}
+			}else{
+				this.cursor.charI = 0;
+			}
 		}else if(keyCode == 2){ // Right
 			if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
 				this.cursor.charI += 1;
-			}else if(this.cursor.line + 1 < this.focusNode.strCount()){
+			}else if(this.cursor.line < this.focusNode.strCount(true)){
 				this.cursor.line += 1;
 				this.cursor.charI = 0;
 			}
 		}else if(keyCode == 3){ // Down
-			
+			if(this.cursor.line < this.focusNode.strCount(true)){
+				this.cursor.line += 1;
+				if(
+					this.cursor.charI > 
+					this.focusNode.strLength(this.cursor.line)
+				){
+					this.cursor.charI = 
+						this.focusNode.strLength(this.cursor.line);
+				}
+			}else{
+				this.cursor.charI = 
+					this.focusNode.strLength(this.cursor.line)
+			}
 		}
 	}
 
@@ -847,17 +887,19 @@ let mDown = false; // If the left mouse button is held down
 window.addEventListener("mousemove", function(evt) {
 	mPos = getMousePos(canvas, evt);
 	if(mDown) allNodes.mouseMove(mPos);
-}, false);
+});
 window.addEventListener("mousedown", function(evt) {
 	mDown = true;
 	allNodes.lmbDown(mPos);
-}, false);
+});
 window.addEventListener("mouseup", function(evt) {
 	mDown = false;
 	allNodes.lmbUp(mPos);
-}, false);
+});
 
 window.addEventListener("keypress", function(evt) {
+	allNodes.initCompareCursors();
+
 	// Required for cross-browser compatibility
 	let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
 	let char = String.fromCharCode(charCode);
@@ -870,8 +912,12 @@ window.addEventListener("keypress", function(evt) {
 		char = char.toUpperCase();
 		allNodes.addChar(char);
 	}
-}, false);
+
+	allNodes.compareCursors();
+});
 window.addEventListener("keydown", function(evt) {
+	allNodes.initCompareCursors();
+
 	// Prevent space and arrow keys from causing unwanted scrolling
 	if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1)
 		evt.preventDefault();
@@ -894,11 +940,13 @@ window.addEventListener("keydown", function(evt) {
 		case 40: allNodes.arrowKey(3); // Down
 			break;
 	}
-}, false);
+
+	allNodes.compareCursors();
+});
 window.addEventListener("blur", function(evt) {
-	allNodes.focusNodeI = -1;
 	allNodes.select.focusLost();
-}, false);
+	allNodes.focusNodeI = -1;
+});
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
 	allNodes.nodes[0].codeBox.str.strSet(i, "testing " + i);
