@@ -918,8 +918,9 @@ window.addEventListener("keypress", function(evt) {
 window.addEventListener("keydown", function(evt) {
 	allNodes.initCompareCursors();
 
-	// Prevent space and arrow keys from causing unwanted scrolling
-	if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1)
+	// Prevent space and arrow keys from causing unwanted scrolling, and from
+	// backspace causing the browser to navigate backwards
+	if([32, 37, 38, 39, 40, 8].indexOf(evt.keyCode) > -1)
 		evt.preventDefault();
 
 	switch(evt.keyCode){
