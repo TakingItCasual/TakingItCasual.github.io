@@ -6,17 +6,17 @@ class CorruptNode{
         this.nodeType = 0;
 
         this.descBox = new BoxText(
-            x+2, y+2, 
-            sizeInit.lineW, 
-            sizeInit.maxLines, 
-            sizeInit.extraH, 
-            sizeInit.offsetY, 
+            x+2, y+2,
+            sizeInit.lineW,
+            sizeInit.maxLines,
+            sizeInit.extraH,
+            sizeInit.offsetY,
             true
         );
 
         this.descBox.str.strSet(4, "COMMUNICATION");
         this.descBox.str.strSet(5, "FAILURE");
-        
+
         const remainder = (this.descBox.h-2)%4;
         const sideX = x+this.descBox.w + 2;
         const sideW = sizeInit.sideWPx + 4;
@@ -38,7 +38,7 @@ class CorruptNode{
             }
             return 0;
         } // See expandCorrupt.txt to see the desired I/O behavior
-        
+
         this.sideBox1 = new Box(
             sideX,
             y,
@@ -59,8 +59,8 @@ class CorruptNode{
         );
 
         this.nodeBox = new Box(
-            x, y, 
-            this.descBox.w + sizeInit.sideWPx + 6, 
+            x, y,
+            this.descBox.w + sizeInit.sideWPx + 6,
             this.descBox.h + 4, 3
         );
     }
@@ -85,17 +85,17 @@ class ComputeNode{
         this.nodeType = 1;
 
         this.codeBox = new BoxCode(
-            x+2, y+2, 
-            sizeInit.lineW, 
-            sizeInit.maxLines, 
-            sizeInit.extraH, 
+            x+2, y+2,
+            sizeInit.lineW,
+            sizeInit.maxLines,
+            sizeInit.extraH,
             sizeInit.offsetY
         );
 
         // Expands the five boxes next to the codeBox to match its height
         const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
         if(expand < 0) expand = 0; // Don't want them to compress
-        function expandCalc(boxNum, divide){ 
+        function expandCalc(boxNum, divide){
             if(expand == 0) return 0;
             boxNum *= 2;
             let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
@@ -103,56 +103,56 @@ class ComputeNode{
             if(divide) total = Math.floor(total/2);
             return total;
         } // See expand.txt to see the desired I/O behavior
-        
+
         // Initialize the ACC box
         this.accBox = new BoxText(
-            x+this.codeBox.w+4, 
-            y+2, 
-            sizeInit.sideW, 
+            x+this.codeBox.w+4,
+            y+2,
+            sizeInit.sideW,
             2, sizeInit.extraH + expandCalc(0, false),
             sizeInit.offsetY + expandCalc(0, true), true
         );
         this.ACC = 0;
         this.accBox.str.strSet(0, "ACC");
-        
+
         // Initialize the BAK box
         this.bakBox = new BoxText(
-            x+this.codeBox.w+4, 
-            this.accBox.y+this.accBox.h + 2, 
-            sizeInit.sideW, 
+            x+this.codeBox.w+4,
+            this.accBox.y+this.accBox.h + 2,
+            sizeInit.sideW,
             2, sizeInit.extraH + expandCalc(1, false),
             sizeInit.offsetY + expandCalc(1, true), true
         );
         this.BAK = 0;
         this.bakBox.str.strSet(0, "BAK");
-        
+
         // Initialize the LAST box
         this.lastBox = new BoxText(
-            x+this.codeBox.w+4, 
-            this.bakBox.y+this.bakBox.h + 2, 
-            sizeInit.sideW, 
+            x+this.codeBox.w+4,
+            this.bakBox.y+this.bakBox.h + 2,
+            sizeInit.sideW,
             2, sizeInit.extraH + expandCalc(2, false),
             sizeInit.offsetY + expandCalc(2, true), true
         );
         this.LAST = null;
         this.lastBox.str.strSet(0, "LAST");
-        
+
         // Initialize the MODE box
         this.modeBox = new BoxText(
-            x+this.codeBox.w+4, 
-            this.lastBox.y+this.lastBox.h + 2, 
-            sizeInit.sideW, 
+            x+this.codeBox.w+4,
+            this.lastBox.y+this.lastBox.h + 2,
+            sizeInit.sideW,
             2, sizeInit.extraH + expandCalc(3, false),
             sizeInit.offsetY + expandCalc(3, true), true
         );
         this.MODE = "IDLE";
         this.modeBox.str.strSet(0, "MODE");
-        
+
         // Initialize the IDLE box
         this.idleBox = new BoxText(
-            x+this.codeBox.w+4, 
-            this.modeBox.y+this.modeBox.h + 2, 
-            sizeInit.sideW, 
+            x+this.codeBox.w+4,
+            this.modeBox.y+this.modeBox.h + 2,
+            sizeInit.sideW,
             2, sizeInit.extraH + expandCalc(4, false),
             sizeInit.offsetY + expandCalc(4, true), true
         );
@@ -163,10 +163,10 @@ class ComputeNode{
             x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
         );
     }
-    
+
     drawNode(select = new Selection()){
         this.nodeBox.drawBox(DIM_WHITE);
-        
+
         // Draws the editable codeBox and all relevant bars
         this.codeBox.drawBox(DIM_WHITE);
         this.codeBox.drawAllLinesAndBars(select);
@@ -176,7 +176,7 @@ class ComputeNode{
         this.accBox.drawLine(0, INFO_GRAY);
         this.accBox.str.strSet(1, this.ACC.toString());
         this.accBox.drawLine(1, DIM_WHITE);
-        
+
         // Draws the BAK box
         this.bakBox.drawBox(DIM_WHITE);
         this.bakBox.drawLine(0, INFO_GRAY);
@@ -186,7 +186,7 @@ class ComputeNode{
             this.bakBox.str.strSet(1, this.BAK.toString());
         }
         this.bakBox.drawLine(1, DIM_WHITE);
-        
+
         // Draws the LAST box
         this.lastBox.drawBox(DIM_WHITE);
         this.lastBox.drawLine(0, INFO_GRAY);
@@ -196,20 +196,20 @@ class ComputeNode{
             this.lastBox.str.strSet(1, "N/A");
         }
         this.lastBox.drawLine(1, DIM_WHITE);
-        
+
         // Draws the MODE box
         this.modeBox.drawBox(DIM_WHITE);
         this.modeBox.drawLine(0, INFO_GRAY);
         this.modeBox.str.strSet(1, this.MODE.toString());
         this.modeBox.drawLine(1, DIM_WHITE);
-        
+
         // Draws the IDLE box
         this.idleBox.drawBox(DIM_WHITE);
         this.idleBox.drawLine(0, INFO_GRAY);
         this.idleBox.str.strSet(1, this.IDLE.toString() + "%");
         this.idleBox.drawLine(1, DIM_WHITE);
     }
-    
+
     haltExecution(){
         this.codeBox.currentLine = -1;
         this.ACC = 0;
@@ -225,40 +225,40 @@ class StackMemNode{
         this.nodeType = 2;
 
         this.descBox = new BoxText(
-            x+2, y+2, 
-            sizeInit.lineW, 
-            sizeInit.maxLines, 
-            sizeInit.extraH, 
-            sizeInit.offsetY, 
+            x+2, y+2,
+            sizeInit.lineW,
+            sizeInit.maxLines,
+            sizeInit.extraH,
+            sizeInit.offsetY,
             true
         );
         this.descBox.str.strSet(7, "STACK MEMORY NODE");
-        
+
         this.memoryBox = new BoxText(
-            x+this.descBox.w+4, y+2, 
-            sizeInit.sideW, 
-            sizeInit.maxLines, 
+            x+this.descBox.w+4, y+2,
+            sizeInit.sideW,
+            sizeInit.maxLines,
             sizeInit.extraH,
-            sizeInit.offsetY, 
+            sizeInit.offsetY,
             true
         );
 
         this.nodeBox = new Box(
-            x, y, 
-            this.descBox.w + sizeInit.sideWPx + 6, 
+            x, y,
+            this.descBox.w + sizeInit.sideWPx + 6,
             this.descBox.h + 4
         );
     }
-    
+
     drawNode(){
         this.nodeBox.drawBox(DIM_WHITE);
-        
+
         // Draws the description box ("STACK MEMORY NODE")
         this.descBox.drawBox(DIM_WHITE);
         this.descBox.drawBar(5, 0, this.descBox.str.strLength(7), WHITE);
         this.descBox.drawLine(7, DIM_WHITE);
         this.descBox.drawBar(9, 0, this.descBox.str.strLength(7), WHITE);
-        
+
         this.memoryBox.drawBox(DIM_WHITE);
         // Prints out each value in memory
         for(let i=0; i<NODE_HEIGHT; i++){

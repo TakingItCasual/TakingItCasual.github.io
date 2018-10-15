@@ -5,8 +5,8 @@ ctx.strokeStyle = WHITE;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 
 let allNodes = new NodeContainer([
-    [1, 1, 2, 0], 
-    [0, 1, 1, 1], 
+    [1, 1, 2, 0],
+    [0, 1, 1, 1],
     [1, 2, 0, 1]
 ]);
 
@@ -17,7 +17,7 @@ function getMousePos(canvas, evt) {
     let scaleY = canvas.height / rect.height;
 
     return {
-        x: Math.floor((evt.clientX - rect.left) * scaleX), 
+        x: Math.floor((evt.clientX - rect.left) * scaleX),
         y: Math.floor((evt.clientY - rect.top) * scaleY)
     }
 }
@@ -113,7 +113,7 @@ allNodes.nodes[2].memoryBox.str.strSet(1, "498");
 allNodes.nodes[2].memoryBox.str.strSet(2, "782");
 
 function gameLoop() {
-    
+
     ctx.beginPath();
     ctx.fillStyle = BLACK;
     ctx.fillRect(0, 0, canvas.width, canvas.height);

@@ -11,9 +11,9 @@ class NodeContainer{
 
         this.select = new Selection(); // Passed to the currently focused node
         this.cursor = this.select.cursor; // Used as an object reference
-        this.prevCursor = { 
-            line: this.cursor.line, 
-            charI: this.cursor.charI 
+        this.prevCursor = {
+            line: this.cursor.line,
+            charI: this.cursor.charI
         } // Used for resetting the blinking thingy when the cursor moves
 
         let sizeInit = {
@@ -54,7 +54,7 @@ class NodeContainer{
         if(this.focusNodeI == -1) return;
 
         if(
-            this.prevCursor.line != this.cursor.line || 
+            this.prevCursor.line != this.cursor.line ||
             this.prevCursor.charI != this.cursor.charI
         ){
             this.select.cursorBlink = Date.now();
@@ -77,12 +77,12 @@ class NodeContainer{
             if(this.nodes[i].nodeType != 1) continue;
 
             boxX = this.nodes[i].codeBox.x + CHAR_GAP;
-            boxY = this.nodes[i].codeBox.y + CHAR_GAP + 
+            boxY = this.nodes[i].codeBox.y + CHAR_GAP +
                 this.nodes[i].codeBox.offsetY - Math.floor(CHAR_GAP/2);
             if(
-                mPos.x >= boxX && 
-                mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH && 
-                mPos.y >= boxY && 
+                mPos.x >= boxX &&
+                mPos.x < boxX + (NODE_WIDTH+1)*CHAR_WIDTH &&
+                mPos.y >= boxY &&
                 mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
             ){ // Collision detection
                 this.focusNodeI = i;
@@ -90,11 +90,11 @@ class NodeContainer{
                 this.focusNode = this.nodes[this.focusNodeI].codeBox.str;
 
                 this.cursor.line = Math.min(
-                    this.nodes[i].codeBox.str.strCount(true),
+                    this.nodes[i].codeBox.str.strCount()-1,
                     Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
                 this.cursor.charI = Math.min(
-                    this.nodes[i].codeBox.str.strLength(this.cursor.line), 
+                    this.nodes[i].codeBox.str.strLength(this.cursor.line),
                     Math.floor((mPos.x-boxX)/CHAR_WIDTH));
 
                 break;
@@ -113,9 +113,9 @@ class NodeContainer{
         this.cursor.charI += 1;
     }
     newLine(){
-        if(this.focusNode.strCount(false) >= NODE_HEIGHT) return;
+        if(this.focusNode.strCount() >= NODE_HEIGHT) return;
 
-        let distToEndOfLine = 
+        let distToEndOfLine =
             this.focusNode.strLength(this.cursor.line) - this.cursor.charI;
 
         this.focusNode.strAdd(this.cursor.line);
@@ -134,15 +134,15 @@ class NodeContainer{
             this.cursor.charI -= 1;
         }else if(this.cursor.line > 0){
             if(
-                this.focusNode.strLength(this.cursor.line-1) + 
+                this.focusNode.strLength(this.cursor.line-1) +
                 this.focusNode.strLength(this.cursor.line) <=
                 NODE_WIDTH
             ){
                 this.cursor.line -= 1;
                 this.cursor.charI = this.focusNode.strLength(this.cursor.line);
 
-                let combinedStr = 
-                    this.focusNode.strGet(this.cursor.line) + 
+                let combinedStr =
+                    this.focusNode.strGet(this.cursor.line) +
                     this.focusNode.strGet(this.cursor.line+1);
                 this.focusNode.strSet(this.cursor.line, combinedStr);
 
@@ -153,14 +153,14 @@ class NodeContainer{
     delChar(){
         if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
             this.focusNode.charDel(this.cursor.line, this.cursor.charI+1);
-        }else if(this.cursor.line < this.focusNode.strCount(true)){
+        }else if(this.cursor.line < this.focusNode.strCount()-1){
             if(
-                this.focusNode.strLength(this.cursor.line) + 
+                this.focusNode.strLength(this.cursor.line) +
                 this.focusNode.strLength(this.cursor.line+1) <=
                 NODE_WIDTH
             ){
-                let combinedStr = 
-                    this.focusNode.strGet(this.cursor.line) + 
+                let combinedStr =
+                    this.focusNode.strGet(this.cursor.line) +
                     this.focusNode.strGet(this.cursor.line+1);
                 this.focusNode.strSet(this.cursor.line, combinedStr);
 
@@ -181,10 +181,10 @@ class NodeContainer{
             if(this.cursor.line > 0){
                 this.cursor.line -= 1;
                 if(
-                    this.cursor.charI > 
+                    this.cursor.charI >
                     this.focusNode.strLength(this.cursor.line)
                 ){
-                    this.cursor.charI = 
+                    this.cursor.charI =
                         this.focusNode.strLength(this.cursor.line);
                 }
             }else{
@@ -193,22 +193,22 @@ class NodeContainer{
         }else if(keyCode == 2){ // Right
             if(this.cursor.charI < this.focusNode.strLength(this.cursor.line)){
                 this.cursor.charI += 1;
-            }else if(this.cursor.line < this.focusNode.strCount(true)){
+            }else if(this.cursor.line < this.focusNode.strCount()-1){
                 this.cursor.line += 1;
                 this.cursor.charI = 0;
             }
         }else if(keyCode == 3){ // Down
-            if(this.cursor.line < this.focusNode.strCount(true)){
+            if(this.cursor.line < this.focusNode.strCount()-1){
                 this.cursor.line += 1;
                 if(
-                    this.cursor.charI > 
+                    this.cursor.charI >
                     this.focusNode.strLength(this.cursor.line)
                 ){
-                    this.cursor.charI = 
+                    this.cursor.charI =
                         this.focusNode.strLength(this.cursor.line);
                 }
             }else{
-                this.cursor.charI = 
+                this.cursor.charI =
                     this.focusNode.strLength(this.cursor.line)
             }
         }
