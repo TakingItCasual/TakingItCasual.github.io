@@ -96,14 +96,30 @@ window.addEventListener("blur", function(evt) {
     allNodes.select.focusLost();
 });
 
-for(let i=0; i<NODE_HEIGHT-1; i++){
+window.addEventListener("copy", function(evt){
+    evt.clipboardData.setData("text/plain", "Test blah blah blah");
+
+    evt.preventDefault();
+});
+window.addEventListener("cut", function(evt){
+    evt.clipboardData.setData("text/plain", "Test blah blah blah 2");
+
+    evt.preventDefault();
+});
+window.addEventListener("paste", function(evt){
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    let clipboardStr = evt.clipboardData.getData("text/plain");
+    allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);
+});
+
+for(let i=0; i<NODE_HEIGHT-1; i++)
     allNodes.nodes[0].codeBox.lines.strSet(i, "testing " + i);
-}
 allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
-for(let i=0; i<NODE_HEIGHT-1; i++){
+for(let i=0; i<NODE_HEIGHT-1; i++)
     allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NODE_HEIGHT-1));
-}
 allNodes.nodes[1].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
 allNodes.nodes[1].codeBox.activeLine = NODE_HEIGHT-1;
 

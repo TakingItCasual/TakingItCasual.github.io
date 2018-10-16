@@ -5,33 +5,38 @@ class Selection{
     constructor(){
         this.nodeI = null; // Index of ComputeNode being focused
         this.cursor = { line: -1, charI: 0 }; // Cursor location
-        this.range = null; // Selection range
+        this.range = {
+            lower: { line: 0, charI: 0 },
+            upper: { line: 0, charI: 0 },
+        }; // Selection range
         this.cursorBlink = Date.now();
     }
 
     lineSelected(line){
-        if(this.range === null) return false
         if(
-            this.range.start.line == this.range.end.line &&
-            this.range.start.charI == this.range.end.charI
+            this.range.lower.line == this.range.upper.line &&
+            this.range.lower.charI == this.range.upper.charI
         ) return false;
         if(
-            this.range.start.line <= line &&
-            this.range.end.line >= line
+            this.range.lower.line <= line &&
+            this.range.upper.line >= line
         ) return true;
         return false;
     }
     charSelected(line, charI){
         if(!this.lineSelected(line)) return false;
         if(
-            this.range.start.charI <= charI &&
-            this.range.end.charI > charI
+            this.range.lower.charI <= charI &&
+            this.range.upper.charI > charI
         ) return true;
         return false;
     }
 
     resetSelection(){
-        this.range = null;
+        this.range = {
+            lower: { line: 0, charI: 0 },
+            upper: { line: 0, charI: 0 },
+        };
     }
     focusLost(){
         this.nodeI = null;
@@ -133,10 +138,14 @@ class NodeContainer{
                 this.cursor.line = Math.min(
                     this.nodes[i].codeBox.lines.strCount()-1,
                     Math.floor((mPos.y-boxY)/LINE_HEIGHT));
+                this.select.range.lower.line = this.cursor.line
+                this.select.range.upper.line = this.cursor.line
 
                 this.cursor.charI = Math.min(
                     this.nodes[i].codeBox.lines.strLength(this.cursor.line),
                     Math.floor((mPos.x-boxX)/CHAR_WIDTH));
+                this.select.range.lower.charI = this.cursor.charI
+                this.select.range.upper.charI = this.cursor.charI
 
                 this.select.resetBlinker();
                 break;

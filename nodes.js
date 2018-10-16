@@ -190,7 +190,7 @@ class ComputeNode{
         // Draws the LAST box
         this.lastBox.drawBox(DIM_WHITE);
         this.lastBox.drawLine(0, INFO_GRAY);
-        if(this.LAST){
+        if(this.LAST !== null){
             this.lastBox.lines.strSet(1, this.LAST.toString());
         }else{
             this.lastBox.lines.strSet(1, "N/A");
