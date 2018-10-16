@@ -1,12 +1,55 @@
 "use strict";
 
+// Used for when the user highlights text in their code
+class Selection{
+    constructor(){
+        this.nodeI = null; // Index of ComputeNode being focused
+        this.cursor = { line: -1, charI: 0 }; // Cursor location
+        this.range = null; // Selection range
+        this.cursorBlink = Date.now();
+    }
+
+    lineSelected(line){
+        if(this.range === null) return false
+        if(
+            this.range.start.line == this.range.end.line &&
+            this.range.start.charI == this.range.end.charI
+        ) return false;
+        if(
+            this.range.start.line <= line &&
+            this.range.end.line >= line
+        ) return true;
+        return false;
+    }
+    charSelected(line, charI){
+        if(!this.lineSelected(line)) return false;
+        if(
+            this.range.start.charI <= charI &&
+            this.range.end.charI > charI
+        ) return true;
+        return false;
+    }
+
+    resetSelection(){
+        this.range = null;
+    }
+    focusLost(){
+        this.nodeI = null;
+        this.cursor.line = -1;
+        this.cursor.charI = 0;
+        this.resetSelection();
+    }
+    resetBlinker(){
+        this.cursorBlink = Date.now();
+    }
+}
+
 // Holds all nodes. Coordinates keyboard input and mouse selection
 class NodeContainer{
     constructor(nodesType){
         this.nodesW = nodesType[0].length; // Width of table of nodes
         this.nodesH = nodesType.length; // Height of table of nodes
 
-        this.focusNodeI = -1; // Indicates which node the user is focused on
         this.focusNode = nodesType; // Used as an object reference (redefined)
 
         this.select = new Selection(); // Passed to the currently focused node
@@ -41,7 +84,7 @@ class NodeContainer{
     }
 
     initCompareCursors(){
-        if(this.focusNodeI == -1) return;
+        if(this.select.nodeI === null) return;
 
         return {
             line: this.cursor.line,
@@ -49,7 +92,7 @@ class NodeContainer{
         }
     }
     compareCursors(prevCursor){
-        if(this.focusNodeI == -1) return;
+        if(this.select.nodeI === null) return;
 
         if(
             prevCursor.line != this.cursor.line ||
@@ -68,7 +111,7 @@ class NodeContainer{
         for(let i=0; i<=this.nodes.length; i++){
             // No nodes were selected
             if(i == this.nodes.length){
-                this.focusNodeI = -1;
+                this.select.nodeI = null;
                 break;
             }
             // codeBox only exists within computeNodes
@@ -83,9 +126,9 @@ class NodeContainer{
                 mPos.y >= boxY &&
                 mPos.y < boxY + NODE_HEIGHT*LINE_HEIGHT
             ){ // Collision detection
-                this.focusNodeI = i;
+                this.select.nodeI = i;
                 // Huzzah for object references
-                this.focusNode = this.nodes[this.focusNodeI].codeBox.lines;
+                this.focusNode = this.nodes[this.select.nodeI].codeBox.lines;
 
                 this.cursor.line = Math.min(
                     this.nodes[i].codeBox.lines.strCount()-1,
@@ -105,7 +148,7 @@ class NodeContainer{
     }
 
     addChar(char){
-        if(this.focusNodeI == -1) return;
+        if(this.select.nodeI === null) return;
         if(this.focusNode.strLength(this.cursor.line) >= NODE_WIDTH) return;
 
         this.focusNode.charAdd(this.cursor.line, this.cursor.charI, char);
@@ -215,8 +258,10 @@ class NodeContainer{
 
     drawNodes(){
         for(let i=0; i<this.nodes.length; i++){
-            if(this.focusNodeI == i) this.nodes[i].drawNode(this.select);
-            else this.nodes[i].drawNode();
+            if(this.select.nodeI === i)
+                this.nodes[i].drawNode(this.select);
+            else
+                this.nodes[i].drawNode(new Selection());
         }
     }
 }

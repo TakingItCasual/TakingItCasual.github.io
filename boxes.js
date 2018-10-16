@@ -123,45 +123,6 @@ class BoxText extends Box{
     }
 }
 
-// Used for when the user highlights text in their code
-class Selection{
-    constructor(){
-        this.cursor = { line: -1, charI: 0 }; // Cursor location
-        this.start = { line: -1, charI: 0 }; // Start of selection
-        this.end = { line: -1, charI: 0 }; // End of selection
-        this.cursorBlink = Date.now();
-    }
-
-    lineSelected(line){
-        if(
-            this.start.line == this.end.line &&
-            this.start.charI == this.end.charI
-        ) return false;
-        if(this.start.line <= line && this.end.line >= line) return true;
-        return false;
-    }
-    charSelected(line, charI){
-        if(!this.lineSelected(line)) return false;
-        if(this.start.charI <= charI && this.end.charI > charI) return true;
-        return false;
-    }
-
-    resetSelection(){
-        this.start.line = -1
-        this.start.charI = 0
-        this.end.line = -1
-        this.end.charI = 0
-    }
-    focusLost(){
-        this.cursor.line = -1
-        this.cursor.charI = 0
-        this.resetSelection();
-    }
-    resetBlinker(){
-        this.cursorBlink = Date.now();
-    }
-}
-
 // Can divide a line into different colors for comments and selection
 class BoxCode extends BoxText{
     constructor(x, y, lineW, maxLines, extraH, offsetY){
@@ -174,8 +135,10 @@ class BoxCode extends BoxText{
     drawAllLinesAndBars(select){
         // Draws bar under currently executing line
         if(this.activeLine !== null){
-            if(this.executable) ctx.fillStyle = ACTIVE_EXEC;
-            else ctx.fillStyle = WAIT_EXEC;
+            if(this.executable)
+                ctx.fillStyle = ACTIVE_EXEC;
+            else
+                ctx.fillStyle = WAIT_EXEC;
             this.drawBar(
                 this.activeLine, 0, this.lineW, ctx.fillStyle,
                 CHAR_GAP, CHAR_GAP-2
@@ -191,16 +154,26 @@ class BoxCode extends BoxText{
             let selectEnd = -1;
             // Draws bar under selected text
             if(select.lineSelected(i) && this.activeLine === null){
-                if(select.start.line < i) selectStart = 0;
-                else selectStart = select.start.charI;
+                if(select.range.start.line < i)
+                    selectStart = 0;
+                else
+                    selectStart = select.range.start.charI;
 
-                if(select.end.line > i) selectEnd = this.lines.strLength(i);
-                else selectEnd = select.end.charI;
+                if(select.range.end.line > i)
+                    selectEnd = this.lines.strLength(i);
+                else
+                    selectEnd = select.range.end.charI;
 
                 this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
             }
 
-            this.drawSplitLine(i, commentStart, selectStart, selectEnd);
+            if(this.activeLine === i){
+                this.drawLine(i, BLACK);
+            }else if(commentStart == -1 && selectStart == -1){
+                this.drawLine(i, DIM_WHITE);
+            }else{
+                this.drawSplitLine(i, commentStart, selectStart, selectEnd);
+            }
         }
 
         // Blinking thingy
@@ -216,17 +189,6 @@ class BoxCode extends BoxText{
     }
     // Draws text lines, using seperate coloring for comments/selection
     drawSplitLine(line, commentStart, selectStart, selectEnd){
-        if(
-            this.activeLine === line ||
-            (commentStart == -1 && selectStart == -1)
-        ){ // Only a single color will be used to draw the text
-            if(this.activeLine === line) ctx.fillStyle = BLACK;
-            else ctx.fillStyle = DIM_WHITE;
-
-            this.drawLine(line);
-            return;
-        }
-
         // To ensure that the Math.min calculations work properly
         if(commentStart == -1) commentStart = NODE_WIDTH;
         if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;

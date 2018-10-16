@@ -94,7 +94,6 @@ window.addEventListener("keydown", function(evt) {
 });
 window.addEventListener("blur", function(evt) {
     allNodes.select.focusLost();
-    allNodes.focusNodeI = -1;
 });
 
 for(let i=0; i<NODE_HEIGHT-1; i++){

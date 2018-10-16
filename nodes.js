@@ -164,7 +164,7 @@ class ComputeNode{
         );
     }
 
-    drawNode(select = new Selection()){
+    drawNode(select){
         this.nodeBox.drawBox(DIM_WHITE);
 
         // Draws the editable codeBox and all relevant bars
