@@ -38,7 +38,7 @@ window.addEventListener("mouseup", function(evt) {
 });
 
 window.addEventListener("keypress", function(evt) {
-    allNodes.initCompareCursors();
+    let prevCursor = allNodes.initCompareCursors();
 
     // Required for cross-browser compatibility
     let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
@@ -53,10 +53,10 @@ window.addEventListener("keypress", function(evt) {
         allNodes.addChar(char);
     }
 
-    allNodes.compareCursors();
+    allNodes.compareCursors(prevCursor);
 });
 window.addEventListener("keydown", function(evt) {
-    allNodes.initCompareCursors();
+    let prevCursor = allNodes.initCompareCursors();
 
     // Prevent space and arrow keys from causing unwanted scrolling
     // Prevent backspace causing the browser to navigate backwards
@@ -90,7 +90,7 @@ window.addEventListener("keydown", function(evt) {
             break;
     }
 
-    allNodes.compareCursors();
+    allNodes.compareCursors(prevCursor);
 });
 window.addEventListener("blur", function(evt) {
     allNodes.select.focusLost();
@@ -98,19 +98,19 @@ window.addEventListener("blur", function(evt) {
 });
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-    allNodes.nodes[0].codeBox.str.strSet(i, "testing " + i);
+    allNodes.nodes[0].codeBox.lines.strSet(i, "testing " + i);
 }
-allNodes.nodes[0].codeBox.str.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
 
 for(let i=0; i<NODE_HEIGHT-1; i++){
-    allNodes.nodes[1].codeBox.str.strSet(i, "testing " + (i+NODE_HEIGHT-1));
+    allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NODE_HEIGHT-1));
 }
-allNodes.nodes[1].codeBox.str.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
-allNodes.nodes[1].codeBox.currentLine = NODE_HEIGHT-1;
+allNodes.nodes[1].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[1].codeBox.activeLine = NODE_HEIGHT-1;
 
-allNodes.nodes[2].memoryBox.str.strSet(0, "254");
-allNodes.nodes[2].memoryBox.str.strSet(1, "498");
-allNodes.nodes[2].memoryBox.str.strSet(2, "782");
+allNodes.nodes[2].memoryBox.lines.strSet(0, "254");
+allNodes.nodes[2].memoryBox.lines.strSet(1, "498");
+allNodes.nodes[2].memoryBox.lines.strSet(2, "782");
 
 function gameLoop() {
 

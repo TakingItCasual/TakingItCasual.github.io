@@ -90,18 +90,18 @@ class BoxText extends Box{
         this.offsetY = offsetY; // Custom y-offset for text lines in pixels
         this.centered = centered; // If true, center text within box's width
 
-        this.str = new StringList(this.lineW, this.maxLines);
+        this.lines = new StringList(this.lineW, this.maxLines);
     }
 
     // Draws text from lineString to the canvas (extraY used for "FAILURE")
     drawLine(line, color=ctx.fillStyle, extraY=0){
         let offsetX = 0;
         if(this.centered){ // Centers text within box's width
-            offsetX = (CHAR_WIDTH/2)*(this.lineW - this.str.strLength(line));
+            offsetX = (CHAR_WIDTH/2)*(this.lineW - this.lines.strLength(line));
         }
         ctx.fillStyle = color;
         ctx.fillText(
-            this.str.strGet(line),
+            this.lines.strGet(line),
             this.x+CHAR_GAP + offsetX,
             this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
         );
@@ -129,8 +129,6 @@ class Selection{
         this.cursor = { line: -1, charI: 0 }; // Cursor location
         this.start = { line: -1, charI: 0 }; // Start of selection
         this.end = { line: -1, charI: 0 }; // End of selection
-
-        // Ensures the blinking thingy doesn't fade when it moves around
         this.cursorBlink = Date.now();
     }
 
@@ -149,12 +147,18 @@ class Selection{
     }
 
     resetSelection(){
-        this.start = { line: -1, charI: 0 };
-        this.end = { line: -1, charI: 0 };
+        this.start.line = -1
+        this.start.charI = 0
+        this.end.line = -1
+        this.end.charI = 0
     }
     focusLost(){
-        this.cursor = { line: -1, charI: 0 };
+        this.cursor.line = -1
+        this.cursor.charI = 0
         this.resetSelection();
+    }
+    resetBlinker(){
+        this.cursorBlink = Date.now();
     }
 }
 
@@ -162,35 +166,35 @@ class Selection{
 class BoxCode extends BoxText{
     constructor(x, y, lineW, maxLines, extraH, offsetY){
         super(x, y, lineW, maxLines, extraH, offsetY, false, 1);
-        this.currentLine = -1; // Indicates currently executing line
+        this.activeLine = null; // Indicates currently executing line
         this.executable = true; // True if the current line was just reached
     }
 
     // Draws text, executing line or selected text bars, and the blinking thingy
     drawAllLinesAndBars(select){
         // Draws bar under currently executing line
-        if(this.currentLine != -1){ // Only false before the program is started
+        if(this.activeLine !== null){
             if(this.executable) ctx.fillStyle = ACTIVE_EXEC;
             else ctx.fillStyle = WAIT_EXEC;
             this.drawBar(
-                this.currentLine, 0, this.lineW, ctx.fillStyle,
+                this.activeLine, 0, this.lineW, ctx.fillStyle,
                 CHAR_GAP, CHAR_GAP-2
             );
         }
 
         // Draws bars under selected text, as well as the text itself
         for(let i=0; i<this.maxLines; i++){
-            if(!this.str.strGet(i)) continue; // String is empty
+            if(!this.lines.strGet(i)) continue; // String is empty
 
-            let commentStart = this.str.strGet(i).indexOf("#");
+            let commentStart = this.lines.strGet(i).indexOf("#");
             let selectStart = -1;
             let selectEnd = -1;
             // Draws bar under selected text
-            if(select.lineSelected(i) && this.currentLine == -1){
+            if(select.lineSelected(i) && this.activeLine === null){
                 if(select.start.line < i) selectStart = 0;
                 else selectStart = select.start.charI;
 
-                if(select.end.line > i) selectEnd = this.str.strLength(i);
+                if(select.end.line > i) selectEnd = this.lines.strLength(i);
                 else selectEnd = select.end.charI;
 
                 this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
@@ -200,7 +204,7 @@ class BoxCode extends BoxText{
         }
 
         // Blinking thingy
-        if(this.currentLine == -1 && select.cursor.line != -1){
+        if(this.activeLine === null && select.cursor.line != -1){
             let blinkTime = (Date.now() - select.cursorBlink) % 800;
             if(blinkTime < 400){ // Get the blinking thingy to blink every 800ms
                 this.drawBar(
@@ -213,10 +217,10 @@ class BoxCode extends BoxText{
     // Draws text lines, using seperate coloring for comments/selection
     drawSplitLine(line, commentStart, selectStart, selectEnd){
         if(
-            this.currentLine == line ||
+            this.activeLine === line ||
             (commentStart == -1 && selectStart == -1)
         ){ // Only a single color will be used to draw the text
-            if(this.currentLine == line) ctx.fillStyle = BLACK;
+            if(this.activeLine === line) ctx.fillStyle = BLACK;
             else ctx.fillStyle = DIM_WHITE;
 
             this.drawLine(line);
@@ -232,41 +236,41 @@ class BoxCode extends BoxText{
         let strColor = []; // Color of the string_part
 
         if(Math.min(commentStart, selectStart) > 0){
-            strParts.push(this.str.strGet(line).substr(
+            strParts.push(this.lines.strGet(line).substr(
                 0, Math.min(commentStart, selectStart)));
             strStart.push(0);
             strColor.push(DIM_WHITE);
         }
         if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
             if(commentStart > 0){
-                strParts.push(this.str.strGet(line).substr(commentStart));
+                strParts.push(this.lines.strGet(line).substr(commentStart));
                 strStart.push(commentStart);
                 strColor.push(COMMENT_GRAY);
             }else{
-                strParts.push(this.str.strGet(line));
+                strParts.push(this.lines.strGet(line));
                 strStart.push(0);
                 strColor.push(COMMENT_GRAY);
             }
         }else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
             if(selectStart > 0){
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     selectStart, selectEnd));
                 strStart.push(selectStart);
                 strColor.push(WHITE);
 
-                if(selectEnd < this.str.strLength(line)){
-                    strParts.push(this.str.strGet(line).substr(selectEnd));
+                if(selectEnd < this.lines.strLength(line)){
+                    strParts.push(this.lines.strGet(line).substr(selectEnd));
                     strStart.push(selectEnd);
                     strColor.push(DIM_WHITE);
                 }
             }else{
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     selectStart, selectEnd));
                 strStart.push(selectStart);
                 strColor.push(WHITE);
 
-                if(selectEnd < this.str.strLength(line)){
-                    strParts.push(this.str.strGet(line).substr(selectEnd));
+                if(selectEnd < this.lines.strLength(line)){
+                    strParts.push(this.lines.strGet(line).substr(selectEnd));
                     strStart.push(selectEnd);
                     strColor.push(DIM_WHITE);
                 }
@@ -274,52 +278,52 @@ class BoxCode extends BoxText{
         }else{
             if(commentStart <= selectStart){
                 if(commentStart < selectStart){
-                    strParts.push(this.str.strGet(line).substr(
+                    strParts.push(this.lines.strGet(line).substr(
                         commentStart, selectStart));
                     strStart.push(commentStart);
                     strColor.push(COMMENT_GRAY);
                 }
 
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     selectStart, selectEnd));
                 strStart.push(selectStart);
                 strColor.push(DIM_WHITE);
 
-                if(selectEnd < this.str.strLength(line)){
-                    strParts.push(this.str.strGet(line).substr(selectEnd));
+                if(selectEnd < this.lines.strLength(line)){
+                    strParts.push(this.lines.strGet(line).substr(selectEnd));
                     strStart.push(selectEnd);
                     strColor.push(COMMENT_GRAY);
                 }
             }else if(selectStart < commentStart && commentStart < selectEnd){
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     selectStart, commentStart));
                 strStart.push(selectStart);
                 strColor.push(WHITE);
 
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     commentStart, selectEnd));
                 strStart.push(commentStart);
                 strColor.push(DIM_WHITE);
 
-                if(selectEnd < this.str.strLength(line)){
-                    strParts.push(this.str.strGet(line).substr(selectEnd));
+                if(selectEnd < this.lines.strLength(line)){
+                    strParts.push(this.lines.strGet(line).substr(selectEnd));
                     strStart.push(selectEnd);
                     strColor.push(COMMENT_GRAY);
                 }
             }else if(commentStart >= selectEnd){
-                strParts.push(this.str.strGet(line).substr(
+                strParts.push(this.lines.strGet(line).substr(
                     selectStart, selectEnd));
                 strStart.push(selectStart);
                 strColor.push(WHITE);
 
                 if(commentStart > selectEnd){
-                    strParts.push(this.str.strGet(line).substr(
+                    strParts.push(this.lines.strGet(line).substr(
                         selectEnd, commentStart));
                     strStart.push(commentStart);
                     strColor.push(DIM_WHITE);
                 }
 
-                strParts.push(this.str.strGet(line).substr(commentStart));
+                strParts.push(this.lines.strGet(line).substr(commentStart));
                 strStart.push(commentStart);
                 strColor.push(COMMENT_GRAY);
             }

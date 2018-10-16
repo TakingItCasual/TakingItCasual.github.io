@@ -14,8 +14,8 @@ class CorruptNode{
             true
         );
 
-        this.descBox.str.strSet(4, "COMMUNICATION");
-        this.descBox.str.strSet(5, "FAILURE");
+        this.descBox.lines.strSet(4, "COMMUNICATION");
+        this.descBox.lines.strSet(5, "FAILURE");
 
         const remainder = (this.descBox.h-2)%4;
         const sideX = x+this.descBox.w + 2;
@@ -69,10 +69,10 @@ class CorruptNode{
         this.nodeBox.drawBox(DARK_RED);
 
         this.descBox.drawBox(DARK_RED);
-        this.descBox.drawBar(2, 0, this.descBox.str.strLength(4), LIGHT_RED);
+        this.descBox.drawBar(2, 0, this.descBox.lines.strLength(4), LIGHT_RED);
         this.descBox.drawLine(4, DARK_RED);
         this.descBox.drawLine(5, DARK_RED, 2);
-        this.descBox.drawBar(7, 0, this.descBox.str.strLength(4), LIGHT_RED);
+        this.descBox.drawBar(7, 0, this.descBox.lines.strLength(4), LIGHT_RED);
 
         this.sideBox1.drawBox(DARK_RED);
         this.sideBox2.drawBox(DARK_RED);
@@ -113,7 +113,7 @@ class ComputeNode{
             sizeInit.offsetY + expandCalc(0, true), true
         );
         this.ACC = 0;
-        this.accBox.str.strSet(0, "ACC");
+        this.accBox.lines.strSet(0, "ACC");
 
         // Initialize the BAK box
         this.bakBox = new BoxText(
@@ -124,7 +124,7 @@ class ComputeNode{
             sizeInit.offsetY + expandCalc(1, true), true
         );
         this.BAK = 0;
-        this.bakBox.str.strSet(0, "BAK");
+        this.bakBox.lines.strSet(0, "BAK");
 
         // Initialize the LAST box
         this.lastBox = new BoxText(
@@ -135,7 +135,7 @@ class ComputeNode{
             sizeInit.offsetY + expandCalc(2, true), true
         );
         this.LAST = null;
-        this.lastBox.str.strSet(0, "LAST");
+        this.lastBox.lines.strSet(0, "LAST");
 
         // Initialize the MODE box
         this.modeBox = new BoxText(
@@ -146,7 +146,7 @@ class ComputeNode{
             sizeInit.offsetY + expandCalc(3, true), true
         );
         this.MODE = "IDLE";
-        this.modeBox.str.strSet(0, "MODE");
+        this.modeBox.lines.strSet(0, "MODE");
 
         // Initialize the IDLE box
         this.idleBox = new BoxText(
@@ -157,7 +157,7 @@ class ComputeNode{
             sizeInit.offsetY + expandCalc(4, true), true
         );
         this.IDLE = 0;
-        this.idleBox.str.strSet(0, "IDLE");
+        this.idleBox.lines.strSet(0, "IDLE");
 
         this.nodeBox = new Box(
             x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
@@ -174,16 +174,16 @@ class ComputeNode{
         // Draws the ACC box
         this.accBox.drawBox(DIM_WHITE);
         this.accBox.drawLine(0, INFO_GRAY);
-        this.accBox.str.strSet(1, this.ACC.toString());
+        this.accBox.lines.strSet(1, this.ACC.toString());
         this.accBox.drawLine(1, DIM_WHITE);
 
         // Draws the BAK box
         this.bakBox.drawBox(DIM_WHITE);
         this.bakBox.drawLine(0, INFO_GRAY);
         if(this.BAK.toString().length + 2 <= this.bakBox.lineW){
-            this.bakBox.str.strSet(1, "(" + this.BAK.toString() + ")");
+            this.bakBox.lines.strSet(1, "(" + this.BAK.toString() + ")");
         }else{
-            this.bakBox.str.strSet(1, this.BAK.toString());
+            this.bakBox.lines.strSet(1, this.BAK.toString());
         }
         this.bakBox.drawLine(1, DIM_WHITE);
 
@@ -191,27 +191,27 @@ class ComputeNode{
         this.lastBox.drawBox(DIM_WHITE);
         this.lastBox.drawLine(0, INFO_GRAY);
         if(this.LAST){
-            this.lastBox.str.strSet(1, this.LAST.toString());
+            this.lastBox.lines.strSet(1, this.LAST.toString());
         }else{
-            this.lastBox.str.strSet(1, "N/A");
+            this.lastBox.lines.strSet(1, "N/A");
         }
         this.lastBox.drawLine(1, DIM_WHITE);
 
         // Draws the MODE box
         this.modeBox.drawBox(DIM_WHITE);
         this.modeBox.drawLine(0, INFO_GRAY);
-        this.modeBox.str.strSet(1, this.MODE.toString());
+        this.modeBox.lines.strSet(1, this.MODE.toString());
         this.modeBox.drawLine(1, DIM_WHITE);
 
         // Draws the IDLE box
         this.idleBox.drawBox(DIM_WHITE);
         this.idleBox.drawLine(0, INFO_GRAY);
-        this.idleBox.str.strSet(1, this.IDLE.toString() + "%");
+        this.idleBox.lines.strSet(1, this.IDLE.toString() + "%");
         this.idleBox.drawLine(1, DIM_WHITE);
     }
 
     haltExecution(){
-        this.codeBox.currentLine = -1;
+        this.codeBox.activeLine = null;
         this.ACC = 0;
         this.BAK = 0;
         this.LAST = null;
@@ -232,7 +232,7 @@ class StackMemNode{
             sizeInit.offsetY,
             true
         );
-        this.descBox.str.strSet(7, "STACK MEMORY NODE");
+        this.descBox.lines.strSet(7, "STACK MEMORY NODE");
 
         this.memoryBox = new BoxText(
             x+this.descBox.w+4, y+2,
@@ -255,15 +255,15 @@ class StackMemNode{
 
         // Draws the description box ("STACK MEMORY NODE")
         this.descBox.drawBox(DIM_WHITE);
-        this.descBox.drawBar(5, 0, this.descBox.str.strLength(7), WHITE);
+        this.descBox.drawBar(5, 0, this.descBox.lines.strLength(7), WHITE);
         this.descBox.drawLine(7, DIM_WHITE);
-        this.descBox.drawBar(9, 0, this.descBox.str.strLength(7), WHITE);
+        this.descBox.drawBar(9, 0, this.descBox.lines.strLength(7), WHITE);
 
         this.memoryBox.drawBox(DIM_WHITE);
         // Prints out each value in memory
         for(let i=0; i<NODE_HEIGHT; i++){
             // There shouldn't be any lower ones if the current line is empty
-            if(!this.memoryBox.str.strGet(i)) break;
+            if(!this.memoryBox.lines.strGet(i)) break;
             this.memoryBox.drawLine(i, DIM_WHITE);
         }
     }

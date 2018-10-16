@@ -11,10 +11,6 @@ class NodeContainer{
 
         this.select = new Selection(); // Passed to the currently focused node
         this.cursor = this.select.cursor; // Used as an object reference
-        this.prevCursor = {
-            line: this.cursor.line,
-            charI: this.cursor.charI
-        } // Used for resetting the blinking thingy when the cursor moves
 
         let sizeInit = {
             lineW: NODE_WIDTH+1, // Width of line (chars)
@@ -47,17 +43,19 @@ class NodeContainer{
     initCompareCursors(){
         if(this.focusNodeI == -1) return;
 
-        this.prevCursor.line = this.cursor.line;
-        this.prevCursor.charI = this.cursor.charI;
+        return {
+            line: this.cursor.line,
+            charI: this.cursor.charI
+        }
     }
-    compareCursors(){
+    compareCursors(prevCursor){
         if(this.focusNodeI == -1) return;
 
         if(
-            this.prevCursor.line != this.cursor.line ||
-            this.prevCursor.charI != this.cursor.charI
+            prevCursor.line != this.cursor.line ||
+            prevCursor.charI != this.cursor.charI
         ){
-            this.select.cursorBlink = Date.now();
+            this.select.resetBlinker();
         }
     }
 
@@ -87,16 +85,17 @@ class NodeContainer{
             ){ // Collision detection
                 this.focusNodeI = i;
                 // Huzzah for object references
-                this.focusNode = this.nodes[this.focusNodeI].codeBox.str;
+                this.focusNode = this.nodes[this.focusNodeI].codeBox.lines;
 
                 this.cursor.line = Math.min(
-                    this.nodes[i].codeBox.str.strCount()-1,
+                    this.nodes[i].codeBox.lines.strCount()-1,
                     Math.floor((mPos.y-boxY)/LINE_HEIGHT));
 
                 this.cursor.charI = Math.min(
-                    this.nodes[i].codeBox.str.strLength(this.cursor.line),
+                    this.nodes[i].codeBox.lines.strLength(this.cursor.line),
                     Math.floor((mPos.x-boxX)/CHAR_WIDTH));
 
+                this.select.resetBlinker();
                 break;
             }
         }
