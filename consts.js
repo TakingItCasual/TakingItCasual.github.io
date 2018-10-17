@@ -11,7 +11,7 @@ const LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
 const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
 const DIM_WHITE = "#C8C8C8"; // Used for the boxes and code
-const DESC_WHITE = "#B4B4B4" // Used for text not in a node
+const DESC_WHITE = "#B4B4B4"; // Used for text not in a node
 const CURSOR_WHITE = "#E2E2E2"; // Used for that blinking thingy
 const WHITE = "#FFFFFF"; // White
 const BLACK = "#000000"; // Black

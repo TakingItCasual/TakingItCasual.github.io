@@ -154,15 +154,15 @@ class BoxCode extends BoxText{
             let selectEnd = -1;
             // Draws bar under selected text
             if(select.lineSelected(i) && this.activeLine === null){
-                if(select.range.lower.line < i)
+                if(select.range.lowerLine < i)
                     selectStart = 0;
                 else
-                    selectStart = select.range.lower.charI;
+                    selectStart = select.range.lowerCharI;
 
-                if(select.range.upper.line > i)
+                if(select.range.upperLine > i)
                     selectEnd = this.lines.strLength(i);
                 else
-                    selectEnd = select.range.upper.charI;
+                    selectEnd = select.range.upperCharI;
 
                 this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
             }
@@ -281,7 +281,7 @@ class BoxCode extends BoxText{
                 if(commentStart > selectEnd){
                     strParts.push(this.lines.strGet(line).substr(
                         selectEnd, commentStart));
-                    strStart.push(commentStart);
+                    strStart.push(selectEnd);
                     strColor.push(DIM_WHITE);
                 }
 

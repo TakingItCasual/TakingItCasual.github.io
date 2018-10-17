@@ -19,10 +19,10 @@ function getMousePos(canvas, evt) {
     return {
         x: Math.floor((evt.clientX - rect.left) * scaleX),
         y: Math.floor((evt.clientY - rect.top) * scaleY)
-    }
+    };
 }
 
-let mPos = { x: 0, y: 0 } // Mouse position
+let mPos = { x: 0, y: 0 }; // Mouse position
 let mDown = false; // If the left mouse button is held down
 window.addEventListener("mousemove", function(evt) {
     mPos = getMousePos(canvas, evt);
