@@ -38,22 +38,21 @@ window.addEventListener("mouseup", function(evt) {
 });
 
 window.addEventListener("keypress", function(evt) {
+    if(evt.ctrlKey) return;
     let prevCursor = allNodes.initCompareCursors();
 
     // Required for cross-browser compatibility
     let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
-    let char = String.fromCharCode(charCode);
+    let char = String.fromCharCode(charCode).toUpperCase();
 
     // Prevents Firefox from opening quick find
     if(["'", "/"].indexOf(char) > -1)
         evt.preventDefault();
 
     if(ALLOWED_CHARS.test(char)){
-        char = char.toUpperCase();
         allNodes.addChar(char);
+        allNodes.compareCursors(prevCursor);
     }
-
-    allNodes.compareCursors(prevCursor);
 });
 window.addEventListener("keydown", function(evt) {
     let prevCursor = allNodes.initCompareCursors();
@@ -90,6 +89,10 @@ window.addEventListener("keydown", function(evt) {
             break;
     }
 
+    if (evt.ctrlKey && evt.code === "KeyA") {
+        allNodes.selectAll();
+    }
+
     allNodes.compareCursors(prevCursor);
 });
 window.addEventListener("blur", function(evt) {
@@ -97,12 +100,16 @@ window.addEventListener("blur", function(evt) {
 });
 
 window.addEventListener("copy", function(evt){
-    evt.clipboardData.setData("text/plain", "Test blah blah blah");
+    let copiedStr = allNodes.attemptCopy()
+    if(copiedStr !== null)
+        evt.clipboardData.setData("text/plain", copiedStr);
 
     evt.preventDefault();
 });
 window.addEventListener("cut", function(evt){
-    evt.clipboardData.setData("text/plain", "Test blah blah blah 2");
+    let cutStr = allNodes.attemptCut()
+    if(cutStr !== null)
+        evt.clipboardData.setData("text/plain", cutStr);
 
     evt.preventDefault();
 });
@@ -110,8 +117,7 @@ window.addEventListener("paste", function(evt){
     evt.preventDefault();
     evt.stopPropagation();
 
-    let clipboardStr = evt.clipboardData.getData("text/plain");
-    allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);
+    allNodes.attemptPaste(evt.clipboardData.getData("text/plain"))
 });
 
 for(let i=0; i<NODE_HEIGHT-1; i++)

@@ -24,52 +24,51 @@ class StringList{
         this.maxLines = maxLines;
         this.lineStrs = [""];
     }
-    strAdd(index){
-        this.lineStrs.splice(index+1, 0, "");
+    strAdd(strI){
+        this.lineStrs.splice(strI+1, 0, "");
     }
-    strDel(index){
-        if(index >= this.lineStrs.length) return;
+    strDel(strI){
+        if(strI >= this.lineStrs.length) return;
         if(this.lineStrs.length <= 1) return; // Don't want an empty lineStr
-        this.lineStrs.splice(index, 1);
+        this.lineStrs.splice(strI, 1);
     }
     strCount(){
         return this.lineStrs.length;
     }
-    strGet(index){
-        if(index >= this.lineStrs.length) return "";
-        return this.lineStrs[index];
+    strGet(strI){
+        if(strI >= this.lineStrs.length) return "";
+        return this.lineStrs[strI];
     }
-    strSet(index, strValue){
-        if(index >= this.maxLines) return; // Index out of range
-        while(index >= this.lineStrs.length)
+    strSet(strI, strValue){
+        if(strI >= this.maxLines) return; // Index out of range
+        while(strI >= this.lineStrs.length)
             this.lineStrs.push(""); // Expand lineString
         // The substr crops the strValue to prevent text overflow
-        this.lineStrs[index] = strValue.substr(0, this.lineW);
+        this.lineStrs[strI] = strValue.substr(0, this.lineW);
     }
-    strLength(index){
-        if(index >= this.lineStrs.length) return 0;
-        return this.lineStrs[index].length;
+    strLength(strI){
+        if(strI >= this.lineStrs.length) return 0;
+        return this.lineStrs[strI].length;
     }
-    strCut(index, charI){ // Cuts string charI from end
-        if(index >= this.lineStrs.length) return "";
-        if(charI > this.lineStrs[index].length) return "";
-        let cutStr = this.lineStrs[index].substr(-charI);
-        this.lineStrs[index] = this.lineStrs[index].slice(0, -charI);
+    strCut(strI, charI){ // Cuts string charI from end
+        if(strI >= this.lineStrs.length) return "";
+        if(charI > this.lineStrs[strI].length) return "";
+        let cutStr = this.lineStrs[strI].substr(-charI);
+        this.lineStrs[strI] = this.lineStrs[strI].slice(0, -charI);
         return cutStr;
     }
-    charAdd(index, charI, charVar){
-        if(index >= this.lineStrs.length) return;
-        if(charI > this.lineStrs[index].length)
-            charI = this.lineStrs[index].length;
-        let str = this.lineStrs[index];
-        this.strSet(index,
-            str.substr(0, charI) + charVar + str.substr(charI));
+    charAdd(strI, charI, charVar){
+        if(strI >= this.lineStrs.length) return;
+        if(charI > this.lineStrs[strI].length)
+            charI = this.lineStrs[strI].length;
+        let str = this.lineStrs[strI];
+        this.strSet(strI, str.substr(0, charI) + charVar + str.substr(charI));
     }
-    charDel(index, charI){
-        if(index >= this.lineStrs.length) return;
-        if(charI > this.lineStrs[index].length) return;
-        let str = this.lineStrs[index];
-        this.strSet(index, str.substr(0, charI-1) + str.substr(charI));
+    charDel(strI, charI){
+        if(strI >= this.lineStrs.length) return;
+        if(charI > this.lineStrs[strI].length) return;
+        let str = this.lineStrs[strI];
+        this.strSet(strI, str.substr(0, charI-1) + str.substr(charI));
     }
 }
 
@@ -149,7 +148,6 @@ class BoxCode extends BoxText{
         for(let i=0; i<this.maxLines; i++){
             if(!this.lines.strGet(i)) continue; // String is empty
 
-            let commentStart = this.lines.strGet(i).indexOf("#");
             let selectStart = -1;
             let selectEnd = -1;
             // Draws bar under selected text
@@ -167,6 +165,7 @@ class BoxCode extends BoxText{
                 this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
             }
 
+            let commentStart = this.lines.strGet(i).indexOf("#");
             if(this.activeLine === i){
                 this.drawLine(i, BLACK);
             }else if(commentStart == -1 && selectStart == -1){
@@ -193,109 +192,52 @@ class BoxCode extends BoxText{
         if(commentStart == -1) commentStart = NODE_WIDTH;
         if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
 
-        let strParts = []; // The cut string
-        let strStart = []; // Index number of from where the string was cut
-        let strColor = []; // Color of the string_part
+        let strParts = []; // List of lists of string indexes and colors
 
-        if(Math.min(commentStart, selectStart) > 0){
-            strParts.push(this.lines.strGet(line).substr(
-                0, Math.min(commentStart, selectStart)));
-            strStart.push(0);
-            strColor.push(DIM_WHITE);
-        }
+        if(Math.min(commentStart, selectStart) > 0)
+            strParts.push([0, DIM_WHITE]);
         if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
-            if(commentStart > 0){
-                strParts.push(this.lines.strGet(line).substr(commentStart));
-                strStart.push(commentStart);
-                strColor.push(COMMENT_GRAY);
-            }else{
-                strParts.push(this.lines.strGet(line));
-                strStart.push(0);
-                strColor.push(COMMENT_GRAY);
-            }
+            if(commentStart > 0)
+                strParts.push([commentStart, COMMENT_GRAY]);
+            else
+                strParts.push([0, COMMENT_GRAY]);
         }else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
             if(selectStart > 0){
-                strParts.push(this.lines.strGet(line).substr(
-                    selectStart, selectEnd));
-                strStart.push(selectStart);
-                strColor.push(WHITE);
-
-                if(selectEnd < this.lines.strLength(line)){
-                    strParts.push(this.lines.strGet(line).substr(selectEnd));
-                    strStart.push(selectEnd);
-                    strColor.push(DIM_WHITE);
-                }
+                strParts.push([selectStart, WHITE]);
+                if(selectEnd < this.lines.strLength(line))
+                    strParts.push([selectEnd, DIM_WHITE]);
             }else{
-                strParts.push(this.lines.strGet(line).substr(
-                    selectStart, selectEnd));
-                strStart.push(selectStart);
-                strColor.push(WHITE);
-
-                if(selectEnd < this.lines.strLength(line)){
-                    strParts.push(this.lines.strGet(line).substr(selectEnd));
-                    strStart.push(selectEnd);
-                    strColor.push(DIM_WHITE);
-                }
+                strParts.push([selectStart, WHITE]);
+                if(selectEnd < this.lines.strLength(line))
+                    strParts.push([selectEnd, DIM_WHITE]);
             }
         }else{
             if(commentStart <= selectStart){
-                if(commentStart < selectStart){
-                    strParts.push(this.lines.strGet(line).substr(
-                        commentStart, selectStart));
-                    strStart.push(commentStart);
-                    strColor.push(COMMENT_GRAY);
-                }
-
-                strParts.push(this.lines.strGet(line).substr(
-                    selectStart, selectEnd));
-                strStart.push(selectStart);
-                strColor.push(DIM_WHITE);
-
-                if(selectEnd < this.lines.strLength(line)){
-                    strParts.push(this.lines.strGet(line).substr(selectEnd));
-                    strStart.push(selectEnd);
-                    strColor.push(COMMENT_GRAY);
-                }
+                if(commentStart < selectStart)
+                    strParts.push([commentStart, COMMENT_GRAY]);
+                strParts.push([selectStart, DIM_WHITE]);
+                if(selectEnd < this.lines.strLength(line))
+                    strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(selectStart < commentStart && commentStart < selectEnd){
-                strParts.push(this.lines.strGet(line).substr(
-                    selectStart, commentStart));
-                strStart.push(selectStart);
-                strColor.push(WHITE);
-
-                strParts.push(this.lines.strGet(line).substr(
-                    commentStart, selectEnd));
-                strStart.push(commentStart);
-                strColor.push(DIM_WHITE);
-
-                if(selectEnd < this.lines.strLength(line)){
-                    strParts.push(this.lines.strGet(line).substr(selectEnd));
-                    strStart.push(selectEnd);
-                    strColor.push(COMMENT_GRAY);
-                }
+                strParts.push([selectStart, WHITE]);
+                strParts.push([commentStart, DIM_WHITE]);
+                if(selectEnd < this.lines.strLength(line))
+                    strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(commentStart >= selectEnd){
-                strParts.push(this.lines.strGet(line).substr(
-                    selectStart, selectEnd));
-                strStart.push(selectStart);
-                strColor.push(WHITE);
-
-                if(commentStart > selectEnd){
-                    strParts.push(this.lines.strGet(line).substr(
-                        selectEnd, commentStart));
-                    strStart.push(selectEnd);
-                    strColor.push(DIM_WHITE);
-                }
-
-                strParts.push(this.lines.strGet(line).substr(commentStart));
-                strStart.push(commentStart);
-                strColor.push(COMMENT_GRAY);
+                strParts.push([selectStart, WHITE]);
+                if(commentStart > selectEnd)
+                    strParts.push([selectEnd, DIM_WHITE]);
+                strParts.push([commentStart, COMMENT_GRAY]);
             }
         }
 
-        for(let i=0; i<strParts.length; i++){
-            ctx.fillStyle = strColor[i];
+        strParts.push([this.lines.strLength(line), null]);
+        for(let i=0; i<strParts.length-1; i++){
+            ctx.fillStyle = strParts[i][1];
             ctx.fillText(
-                strParts[i],
-                this.x+CHAR_GAP + CHAR_WIDTH*strStart[i],
+                this.lines.strGet(line).substr(
+                    strParts[i][0], strParts[i+1][0]),
+                this.x+CHAR_GAP + CHAR_WIDTH*strParts[i][0],
                 this.y+this.offsetY + (line+1)*LINE_HEIGHT
             );
         }

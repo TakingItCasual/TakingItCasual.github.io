@@ -204,7 +204,7 @@ class NodeContainer{
         this.cursor.line += 1;
         this.cursor.charI = 0;
 
-        if(distToEndOfLine > 0){ // Cursor not at the end of the line
+        if(distToEndOfLine > 0){
             let strToMove = this.nodeLines.strCut(
                 this.cursor.line-1, distToEndOfLine);
             this.nodeLines.strSet(this.cursor.line, strToMove);
@@ -252,6 +252,7 @@ class NodeContainer{
     }
 
     arrowKey(keyCode){
+        this.select.range.initTo(0, 0);
         if(keyCode == 0){ // Left
             if(this.cursor.charI > 0){
                 this.cursor.charI -= 1;
@@ -294,6 +295,23 @@ class NodeContainer{
                     this.nodeLines.strLength(this.cursor.line);
             }
         }
+    }
+
+    attemptCopy(){
+        return "aoeui";
+    }
+    attemptCut(){
+        return "iueoa";
+    }
+    attemptPaste(clipboardStr){
+        this.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);
+    }
+    selectAll(){
+        this.select.range.start.line = this.select.range.start.charI = 0
+        this.cursor.line = this.select.range.current.line = 
+            this.nodeLines.strCount()-1;
+        this.cursor.charI = this.select.range.current.charI =
+            this.nodeLines.strLength(this.cursor.line);
     }
 
     drawNodes(){
