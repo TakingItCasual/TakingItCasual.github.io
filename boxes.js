@@ -168,7 +168,7 @@ class BoxCode extends BoxText{
             let commentStart = this.lines.strGet(i).indexOf("#");
             if(this.activeLine === i){
                 this.drawLine(i, BLACK);
-            }else if(commentStart == -1 && selectStart == -1){
+            }else if(commentStart === -1 && selectStart === -1){
                 this.drawLine(i, DIM_WHITE);
             }else{
                 this.drawSplitLine(i, commentStart, selectStart, selectEnd);
@@ -176,7 +176,7 @@ class BoxCode extends BoxText{
         }
 
         // Blinking thingy
-        if(this.activeLine === null && select.cursor.line != -1){
+        if(this.activeLine === null && select.cursor.line !== -1){
             let blinkTime = (Date.now() - select.cursorBlink) % 800;
             if(blinkTime < 400){ // Get the blinking thingy to blink every 800ms
                 this.drawBar(
@@ -189,19 +189,19 @@ class BoxCode extends BoxText{
     // Draws text lines, using seperate coloring for comments/selection
     drawSplitLine(line, commentStart, selectStart, selectEnd){
         // To ensure that the Math.min calculations work properly
-        if(commentStart == -1) commentStart = NODE_WIDTH;
-        if(selectStart == -1) selectStart = selectEnd = NODE_WIDTH;
+        if(commentStart === -1) commentStart = NODE_WIDTH;
+        if(selectStart === -1) selectStart = selectEnd = NODE_WIDTH;
 
         let strParts = []; // List of lists of string indexes and colors
 
         if(Math.min(commentStart, selectStart) > 0)
             strParts.push([0, DIM_WHITE]);
-        if(commentStart != NODE_WIDTH && selectStart == NODE_WIDTH){
+        if(commentStart !== NODE_WIDTH && selectStart === NODE_WIDTH){
             if(commentStart > 0)
                 strParts.push([commentStart, COMMENT_GRAY]);
             else
                 strParts.push([0, COMMENT_GRAY]);
-        }else if(commentStart == NODE_WIDTH && selectStart != NODE_WIDTH){
+        }else if(commentStart === NODE_WIDTH && selectStart !== NODE_WIDTH){
             if(selectStart > 0){
                 strParts.push([selectStart, WHITE]);
                 if(selectEnd < this.lines.strLength(line))

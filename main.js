@@ -42,7 +42,7 @@ window.addEventListener("keypress", function(evt) {
     let prevCursor = allNodes.initCompareCursors();
 
     // Required for cross-browser compatibility
-    let charCode = (typeof evt.which == "number") ? evt.which : evt.keyCode;
+    let charCode = (typeof evt.which === "number") ? evt.which : evt.keyCode;
     let char = String.fromCharCode(charCode).toUpperCase();
 
     // Prevents Firefox from opening quick find

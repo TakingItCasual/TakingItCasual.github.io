@@ -22,19 +22,19 @@ class CorruptNode{
         const sideW = sizeInit.sideWPx + 4;
         const sideH = (this.descBox.h - remainder)/2 + 3;
         function expandCalc(boxNum, y_pos){
-            if(remainder == 0) return 0;
-            if(boxNum == 1){
-                if(remainder == 3) return 2;
+            if(remainder === 0) return 0;
+            if(boxNum === 1){
+                if(remainder === 3) return 2;
                 return remainder;
-            }else if(boxNum == 2){
+            }else if(boxNum === 2){
                 if(y_pos) return 1;
                 return remainder-1;
             }else{
                 if(y_pos){
-                    if(remainder == 3) return 2;
+                    if(remainder === 3) return 2;
                     return remainder;
                 }
-                if(remainder == 3) return 1;
+                if(remainder === 3) return 1;
             }
             return 0;
         } // See expandCorrupt.txt to see the desired I/O behavior
@@ -96,10 +96,10 @@ class ComputeNode{
         const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
         if(expand < 0) expand = 0; // Don't want them to compress
         function expandCalc(boxNum, divide){
-            if(expand == 0) return 0;
+            if(expand === 0) return 0;
             boxNum *= 2;
             let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
-            if((expand-boxNum-1)%(INFO_BOXES*2) == 0) total -= 1;
+            if((expand-boxNum-1)%(INFO_BOXES*2) === 0) total -= 1;
             if(divide) total = Math.floor(total/2);
             return total;
         } // See expand.txt to see the desired I/O behavior
