@@ -40,7 +40,7 @@ class StringList{
         return this.lineStrs[strI];
     }
     strSet(strI, strValue){
-        if(strI >= this.maxLines) return; // Index out of range
+        if(strI >= this.maxLines) return;
         while(strI >= this.lineStrs.length)
             this.lineStrs.push(""); // Expand lineString
         // The substr crops the strValue to prevent text overflow

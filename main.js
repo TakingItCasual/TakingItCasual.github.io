@@ -26,7 +26,7 @@ let mPos = { x: 0, y: 0 }; // Mouse position
 let mDown = false; // If the left mouse button is held down
 window.addEventListener("mousemove", function(evt) {
     mPos = getMousePos(canvas, evt);
-    if(mDown) allNodes.mouseMove(mPos);
+    if(mDown) allNodes.mouseDrag(mPos);
 });
 window.addEventListener("mousedown", function(evt) {
     mDown = true;
@@ -49,6 +49,8 @@ window.addEventListener("keypress", function(evt) {
     if(["'", "/"].indexOf(char) > -1)
         evt.preventDefault();
 
+    if(prevCursor === null) return;
+
     if(ALLOWED_CHARS.test(char)){
         allNodes.addChar(char);
         allNodes.compareCursors(prevCursor);
@@ -61,6 +63,8 @@ window.addEventListener("keydown", function(evt) {
     // Prevent backspace causing the browser to navigate backwards
     if([32, 37, 38, 39, 40, 8].indexOf(evt.keyCode) > -1)
         evt.preventDefault();
+
+    if(prevCursor === null) return;
 
     switch(evt.keyCode){
         case 13: // Enter

@@ -31,27 +31,23 @@ class Selection{
                 if(this.start.line < this.current.line)
                     return this.current.charI;
                 return Math.max(this.start.charI, this.current.charI);
+            },
+            get isNull(){
+                if(
+                    this.start.line === this.current.line &&
+                    this.start.charI === this.current.charI
+                ) return true;
+                return false;
             }
         }; // Selection range
         this.cursorBlink = Date.now();
     }
 
     lineSelected(line){
-        if(
-            this.range.lowerLine === this.range.upperLine &&
-            this.range.lowerCharI === this.range.upperCharI
-        ) return false;
+        if(this.range.isNull) return false;
         if(
             this.range.lowerLine <= line &&
             this.range.upperLine >= line
-        ) return true;
-        return false;
-    }
-    charSelected(line, charI){
-        if(!this.lineSelected(line)) return false;
-        if(
-            this.range.lowerCharI <= charI &&
-            this.range.upperCharI > charI
         ) return true;
         return false;
     }
@@ -108,7 +104,7 @@ class NodeContainer{
     }
 
     initCompareCursors(){
-        if(this.select.nodeI === null) return;
+        if(this.select.nodeI === null) return null;
 
         return {
             line: this.cursor.line,
@@ -116,8 +112,6 @@ class NodeContainer{
         };
     }
     compareCursors(prevCursor){
-        if(this.select.nodeI === null) return;
-
         if(
             prevCursor.line !== this.cursor.line ||
             prevCursor.charI !== this.cursor.charI
@@ -126,7 +120,7 @@ class NodeContainer{
         }
     }
 
-    mouseMove(mPos){ // Mouse held down, mouse movement
+    mouseDrag(mPos){ // Mouse held down, mouse movement
         if(this.select.nodeI === null) return;
 
         let [cornerX, cornerY] = this._nodeTopLeft(this.select.nodeI);
@@ -139,9 +133,8 @@ class NodeContainer{
         let cornerX = 0;
         let cornerY = 0;
         for(let i=0; i<=this.nodes.length; i++){
-            // No nodes were selected
-            if(i === this.nodes.length){
-                this.select.nodeI = null;
+            if(i === this.nodes.length){ // No nodes were selected
+                this.select.nodeI = this.nodeLines = null;
                 break;
             }
             // codeBox only exists within computeNodes
@@ -207,7 +200,9 @@ class NodeContainer{
         }
     }
     bakChar(){
-        if(this.cursor.charI > 0){
+        if(!this.select.range.isNull){
+            this.delSelection();
+        }else if(this.cursor.charI > 0){
             this.nodeLines.charDel(this.cursor.line, this.cursor.charI);
             this.cursor.charI -= 1;
         }else if(this.cursor.line > 0){
@@ -229,7 +224,11 @@ class NodeContainer{
         }
     }
     delChar(){
-        if(this.cursor.charI < this.nodeLines.strLength(this.cursor.line)){
+        if(!this.select.range.isNull){
+            this.delSelection();
+        }else if(
+            this.cursor.charI < this.nodeLines.strLength(this.cursor.line)
+        ){
             this.nodeLines.charDel(this.cursor.line, this.cursor.charI+1);
         }else if(this.cursor.line < this.nodeLines.strCount()-1){
             if(
@@ -244,6 +243,32 @@ class NodeContainer{
 
                 this.nodeLines.strDel(this.cursor.line+1);
             }
+        }
+    }
+    delSelection(){
+        if(this.select.range.isNull) return;
+
+        if(
+            this.select.range.lowerCharI +
+            this.nodeLines.strLength(this.select.range.upperLine) -
+            this.select.range.upperCharI <= NODE_WIDTH
+        ){
+            let combinedStr =
+                this.nodeLines.strGet(this.select.range.lowerLine).substr(
+                    0, this.select.range.lowerCharI) +
+                this.nodeLines.strGet(this.select.range.upperLine).substr(
+                    this.select.range.upperCharI);
+            this.nodeLines.strSet(this.select.range.lowerLine, combinedStr);
+
+            let linesToDelete =
+                this.select.range.upperLine - this.select.range.lowerLine;
+            for(let i=linesToDelete; i>0; i--){
+                this.nodeLines.strDel(this.select.range.lowerLine+1);
+            }
+
+            this.cursor.line = this.select.range.lowerLine;
+            this.cursor.charI = this.select.range.lowerCharI;
+            this.select.range.initTo(this.cursor.line, this.cursor.charI);
         }
     }
 
