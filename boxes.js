@@ -2,7 +2,7 @@
 
 // Just your standard box, containing nothing more than its own dimensions
 class Box{
-    constructor(x, y, w, h, borderW=1){
+    constructor({x, y, w, h, borderW=1}){
         this.x = x + ((borderW-1)/2); // x-pos of box's top left
         this.y = y + ((borderW-1)/2); // y-pos of box's top left
         this.w = w - (borderW - 1); // Box's width
@@ -74,19 +74,20 @@ class StringList{
 
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
-    constructor(
-        x, y, lineW, maxLines, extraH, offsetY, centered=false, borderW=1
-    ){
-        super(
-            x, y,
-            lineW*CHAR_WIDTH + CHAR_GAP*2,
-            maxLines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
-            borderW
-        );
+    constructor({
+        x, y, lineW, maxLines, extraH, offsetY=0, centered=false, borderW=1
+    }){
+        super({
+            x: x,
+            y: y,
+            w: lineW*CHAR_WIDTH + CHAR_GAP*2,
+            h: maxLines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
+            borderW: borderW
+        });
         this.lineW = lineW; // Width of the box in terms of characters
         this.maxLines = maxLines; // Maximum number of string lines
-        this.extraH = extraH; // Extra height of the box in pixels
-        this.offsetY = offsetY; // Custom y-offset for text lines in pixels
+        this.extraH = extraH; // Extra height of the box (px)
+        this.offsetY = offsetY; // Custom y-offset for text lines (px)
         this.centered = centered; // If true, center text within box's width
 
         this.lines = new StringList(this.lineW, this.maxLines);
@@ -102,7 +103,7 @@ class BoxText extends Box{
         ctx.fillText(
             this.lines.strGet(line),
             this.x+CHAR_GAP + offsetX,
-            this.y+this.offsetY + extraY + (line+1)*LINE_HEIGHT
+            this.y+CHAR_GAP + (line+1)*LINE_HEIGHT + this.offsetY+extraY
         );
     }
     // Used to draw those solid color boxes (and bars)
@@ -114,8 +115,8 @@ class BoxText extends Box{
         ctx.fillStyle = barColor;
         ctx.fillRect(
             this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart,
-            this.y+this.offsetY+CHAR_GAP + (line)*LINE_HEIGHT -
-                Math.floor(CHAR_GAP/2),
+            this.y + (line)*LINE_HEIGHT + 2*CHAR_GAP - Math.floor(CHAR_GAP/2)
+                + this.offsetY,
             (endChar-startChar)*CHAR_WIDTH + extraStart+extraEnd,
             LINE_HEIGHT
         );
@@ -124,8 +125,15 @@ class BoxText extends Box{
 
 // Can divide a line into different colors for comments and selection
 class BoxCode extends BoxText{
-    constructor(x, y, lineW, maxLines, extraH, offsetY){
-        super(x, y, lineW, maxLines, extraH, offsetY, false, 1);
+    constructor({x, y, lineW, maxLines, extraH, offsetY}){
+        super({
+            x: x,
+            y: y,
+            lineW: lineW,
+            maxLines: maxLines,
+            extraH: extraH,
+            offsetY: offsetY
+        });
         this.activeLine = null; // Indicates currently executing line
         this.executable = true; // True if the current line was just reached
     }
@@ -187,7 +195,7 @@ class BoxCode extends BoxText{
         }
     }
     // Draws text lines, using seperate coloring for comments/selection
-    drawSplitLine(line, commentStart, selectStart, selectEnd){
+    drawSplitLine(lineI, commentStart, selectStart, selectEnd){
         // To ensure that the Math.min calculations work properly
         if(commentStart === -1) commentStart = NODE_WIDTH;
         if(selectStart === -1) selectStart = selectEnd = NODE_WIDTH;
@@ -204,11 +212,11 @@ class BoxCode extends BoxText{
         }else if(commentStart === NODE_WIDTH && selectStart !== NODE_WIDTH){
             if(selectStart > 0){
                 strParts.push([selectStart, WHITE]);
-                if(selectEnd < this.lines.strLength(line))
+                if(selectEnd < this.lines.strLength(lineI))
                     strParts.push([selectEnd, DIM_WHITE]);
             }else{
                 strParts.push([selectStart, WHITE]);
-                if(selectEnd < this.lines.strLength(line))
+                if(selectEnd < this.lines.strLength(lineI))
                     strParts.push([selectEnd, DIM_WHITE]);
             }
         }else{
@@ -216,12 +224,12 @@ class BoxCode extends BoxText{
                 if(commentStart < selectStart)
                     strParts.push([commentStart, COMMENT_GRAY]);
                 strParts.push([selectStart, DIM_WHITE]);
-                if(selectEnd < this.lines.strLength(line))
+                if(selectEnd < this.lines.strLength(lineI))
                     strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(selectStart < commentStart && commentStart < selectEnd){
                 strParts.push([selectStart, WHITE]);
                 strParts.push([commentStart, DIM_WHITE]);
-                if(selectEnd < this.lines.strLength(line))
+                if(selectEnd < this.lines.strLength(lineI))
                     strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(commentStart >= selectEnd){
                 strParts.push([selectStart, WHITE]);
@@ -231,14 +239,14 @@ class BoxCode extends BoxText{
             }
         }
 
-        strParts.push([this.lines.strLength(line), null]);
+        strParts.push([this.lines.strLength(lineI), null]);
         for(let i=0; i<strParts.length-1; i++){
             ctx.fillStyle = strParts[i][1];
             ctx.fillText(
-                this.lines.strGet(line).substr(
+                this.lines.strGet(lineI).substr(
                     strParts[i][0], strParts[i+1][0]),
                 this.x+CHAR_GAP + CHAR_WIDTH*strParts[i][0],
-                this.y+this.offsetY + (line+1)*LINE_HEIGHT
+                this.y+CHAR_GAP + (lineI+1)*LINE_HEIGHT + this.offsetY
             );
         }
     }

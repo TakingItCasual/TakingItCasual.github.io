@@ -5,14 +5,14 @@ class CorruptNode{
     constructor(x, y, sizeInit){
         this.nodeType = 0;
 
-        this.descBox = new BoxText(
-            x+2, y+2,
-            sizeInit.lineW,
-            sizeInit.maxLines,
-            sizeInit.extraH,
-            sizeInit.offsetY,
-            true
-        );
+        this.descBox = new BoxText({
+            x: x+2,
+            y: y+2,
+            lineW: sizeInit.lineW,
+            maxLines: sizeInit.maxLines,
+            extraH: sizeInit.extraH,
+            centered: true
+        });
 
         this.descBox.lines.strSet(4, "COMMUNICATION");
         this.descBox.lines.strSet(5, "FAILURE");
@@ -39,30 +39,35 @@ class CorruptNode{
             return 0;
         } // See expandCorrupt.txt to see the desired I/O behavior
 
-        this.sideBox1 = new Box(
-            sideX,
-            y,
-            sideW,
-            sideH + expandCalc(1, false), 3
-        );
-        this.sideBox2 = new Box(
-            sideX,
-            y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
-            sideW,
-            sideH + expandCalc(2, false), 3
-        );
-        this.sideBox3 = new Box(
-            sideX,
-            y + this.sideBox1.h,
-            sideW,
-            sideH + expandCalc(3, false), 3
-        );
+        this.sideBox1 = new Box({
+            x: sideX,
+            y: y,
+            w: sideW,
+            h: sideH + expandCalc(1, false),
+            borderW: 3
+        });
+        this.sideBox2 = new Box({
+            x: sideX,
+            y: y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
+            w: sideW,
+            h: sideH + expandCalc(2, false),
+            borderW: 3
+        });
+        this.sideBox3 = new Box({
+            x: sideX,
+            y: y + this.sideBox1.h,
+            w: sideW,
+            h: sideH + expandCalc(3, false),
+            borderW: 3
+        });
 
-        this.nodeBox = new Box(
-            x, y,
-            this.descBox.w + sizeInit.sideWPx + 6,
-            this.descBox.h + 4, 3
-        );
+        this.nodeBox = new Box({
+            x: x,
+            y: y,
+            w: this.descBox.w + sizeInit.sideWPx + 6,
+            h: this.descBox.h + 4,
+            borderW: 3
+        });
     }
 
     drawNode(){
@@ -79,18 +84,19 @@ class CorruptNode{
         this.sideBox3.drawBox(DARK_RED);
     }
 }
+
 // Node within which the user writes their code
 class ComputeNode{
     constructor(x, y, sizeInit){
         this.nodeType = 1;
 
-        this.codeBox = new BoxCode(
-            x+2, y+2,
-            sizeInit.lineW,
-            sizeInit.maxLines,
-            sizeInit.extraH,
-            sizeInit.offsetY
-        );
+        this.codeBox = new BoxCode({
+            x: x+2,
+            y: y+2,
+            lineW: sizeInit.lineW,
+            maxLines: sizeInit.maxLines,
+            extraH: sizeInit.extraH
+        });
 
         // Expands the five boxes next to the codeBox to match its height
         const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
@@ -105,63 +111,76 @@ class ComputeNode{
         } // See expand.txt to see the desired I/O behavior
 
         // Initialize the ACC box
-        this.accBox = new BoxText(
-            x+this.codeBox.w+4,
-            y+2,
-            sizeInit.sideW,
-            2, sizeInit.extraH + expandCalc(0, false),
-            sizeInit.offsetY + expandCalc(0, true), true
-        );
+        this.accBox = new BoxText({
+            x: x+this.codeBox.w+4,
+            y: y+2,
+            lineW: sizeInit.sideW,
+            maxLines: 2,
+            extraH: sizeInit.extraH + expandCalc(0, false),
+            offsetY: expandCalc(0, true),
+            centered: true
+        });
         this.ACC = 0;
         this.accBox.lines.strSet(0, "ACC");
 
         // Initialize the BAK box
-        this.bakBox = new BoxText(
-            x+this.codeBox.w+4,
-            this.accBox.y+this.accBox.h + 2,
-            sizeInit.sideW,
-            2, sizeInit.extraH + expandCalc(1, false),
-            sizeInit.offsetY + expandCalc(1, true), true
-        );
+        this.bakBox = new BoxText({
+            x: x+this.codeBox.w+4,
+            y: this.accBox.y+this.accBox.h + 2,
+            lineW: sizeInit.sideW,
+            maxLines: 2,
+            extraH: sizeInit.extraH + expandCalc(1, false),
+            offsetY: expandCalc(1, true),
+            centered: true
+        });
         this.BAK = 0;
         this.bakBox.lines.strSet(0, "BAK");
 
         // Initialize the LAST box
-        this.lastBox = new BoxText(
-            x+this.codeBox.w+4,
-            this.bakBox.y+this.bakBox.h + 2,
-            sizeInit.sideW,
-            2, sizeInit.extraH + expandCalc(2, false),
-            sizeInit.offsetY + expandCalc(2, true), true
-        );
+        this.lastBox = new BoxText({
+            x: x+this.codeBox.w+4,
+            y: this.bakBox.y+this.bakBox.h + 2,
+            lineW: sizeInit.sideW,
+            maxLines: 2,
+            extraH: sizeInit.extraH + expandCalc(2, false),
+            offsetY: expandCalc(2, true),
+            centered: true
+        });
         this.LAST = null;
         this.lastBox.lines.strSet(0, "LAST");
 
         // Initialize the MODE box
-        this.modeBox = new BoxText(
-            x+this.codeBox.w+4,
-            this.lastBox.y+this.lastBox.h + 2,
-            sizeInit.sideW,
-            2, sizeInit.extraH + expandCalc(3, false),
-            sizeInit.offsetY + expandCalc(3, true), true
-        );
+        this.modeBox = new BoxText({
+            x: x+this.codeBox.w+4,
+            y: this.lastBox.y+this.lastBox.h + 2,
+            lineW: sizeInit.sideW,
+            maxLines: 2,
+            extraH: sizeInit.extraH + expandCalc(3, false),
+            offsetY: expandCalc(3, true), 
+            centered: true
+        });
         this.MODE = "IDLE";
         this.modeBox.lines.strSet(0, "MODE");
 
         // Initialize the IDLE box
-        this.idleBox = new BoxText(
-            x+this.codeBox.w+4,
-            this.modeBox.y+this.modeBox.h + 2,
-            sizeInit.sideW,
-            2, sizeInit.extraH + expandCalc(4, false),
-            sizeInit.offsetY + expandCalc(4, true), true
-        );
+        this.idleBox = new BoxText({
+            x: x+this.codeBox.w+4,
+            y: this.modeBox.y+this.modeBox.h + 2,
+            lineW: sizeInit.sideW,
+            maxLines: 2,
+            extraH: sizeInit.extraH + expandCalc(4, false),
+            offsetY: expandCalc(4, true),
+            centered: true
+        });
         this.IDLE = 0;
         this.idleBox.lines.strSet(0, "IDLE");
 
-        this.nodeBox = new Box(
-            x, y, this.codeBox.w+sizeInit.sideWPx + 6, this.codeBox.h + 4
-        );
+        this.nodeBox = new Box({
+            x: x,
+            y: y,
+            w: this.codeBox.w+sizeInit.sideWPx + 6,
+            h: this.codeBox.h + 4
+        });
     }
 
     drawNode(select){
@@ -219,35 +238,37 @@ class ComputeNode{
         this.IDLE = 0;
     }
 }
+
 // Stack memory node. Stores values given to it, which can then be retrieved
 class StackMemNode{
     constructor(x, y, sizeInit){
         this.nodeType = 2;
 
-        this.descBox = new BoxText(
-            x+2, y+2,
-            sizeInit.lineW,
-            sizeInit.maxLines,
-            sizeInit.extraH,
-            sizeInit.offsetY,
-            true
-        );
+        this.descBox = new BoxText({
+            x: x+2,
+            y: y+2,
+            lineW: sizeInit.lineW,
+            maxLines: sizeInit.maxLines,
+            extraH: sizeInit.extraH,
+            centered: true
+        });
         this.descBox.lines.strSet(7, "STACK MEMORY NODE");
 
-        this.memoryBox = new BoxText(
-            x+this.descBox.w+4, y+2,
-            sizeInit.sideW,
-            sizeInit.maxLines,
-            sizeInit.extraH,
-            sizeInit.offsetY,
-            true
-        );
+        this.memoryBox = new BoxText({
+            x: x+this.descBox.w+4,
+            y: y+2,
+            lineW: sizeInit.sideW,
+            maxLines: sizeInit.maxLines,
+            extraH: sizeInit.extraH,
+            centered: true
+        });
 
-        this.nodeBox = new Box(
-            x, y,
-            this.descBox.w + sizeInit.sideWPx + 6,
-            this.descBox.h + 4
-        );
+        this.nodeBox = new Box({
+            x: x,
+            y: y,
+            w: this.descBox.w + sizeInit.sideWPx + 6,
+            h: this.descBox.h + 4
+        });
     }
 
     drawNode(){

@@ -79,7 +79,6 @@ class NodeContainer{
             lineW: NODE_WIDTH+1, // Width of line (chars)
             maxLines: NODE_HEIGHT, // Maximum number of lines
             extraH: CHAR_GAP*2, // Extra height of main text box (px)
-            offsetY: CHAR_GAP, // Distance lines are pushed down (px)
             sideW: ACC_MIN.toString().length+1, // Width of side boxes (chars)
             sideWPx: 0 // Width of side boxes (px)
         };
@@ -163,7 +162,7 @@ class NodeContainer{
     }
     _nodeTopLeft(nodeI){
         let cornerX = this.nodes[nodeI].codeBox.x + CHAR_GAP;
-        let cornerY = this.nodes[nodeI].codeBox.y + CHAR_GAP +
+        let cornerY = this.nodes[nodeI].codeBox.y + 2*CHAR_GAP +
             this.nodes[nodeI].codeBox.offsetY - Math.floor(CHAR_GAP/2);
         return [cornerX, cornerY];
     }
