@@ -4,37 +4,37 @@
 class Selection{
     constructor(){
         this.nodeI = null; // Index of ComputeNode being focused
-        this.cursor = { line: -1, charI: 0 }; // Cursor location
+        this.cursor = { lineI: -1, charI: 0 }; // Cursor location
         this.range = {
-            start: { line: 0, charI: 0 },
-            current: { line: 0, charI: 0 },
-            initTo(line, charI){
-                this.start.line = this.current.line = line;
+            start: { lineI: 0, charI: 0 },
+            current: { lineI: 0, charI: 0 },
+            initTo(lineI, charI){
+                this.start.lineI = this.current.lineI = lineI;
                 this.start.charI = this.current.charI = charI;
             },
             get lowerLine(){
-                return Math.min(this.start.line, this.current.line);
+                return Math.min(this.start.lineI, this.current.lineI);
             },
             get lowerCharI(){
-                if(this.start.line < this.current.line)
+                if(this.start.lineI < this.current.lineI)
                     return this.start.charI;
-                if(this.start.line > this.current.line)
+                if(this.start.lineI > this.current.lineI)
                     return this.current.charI;
                 return Math.min(this.start.charI, this.current.charI);
             },
             get upperLine(){
-                return Math.max(this.start.line, this.current.line);
+                return Math.max(this.start.lineI, this.current.lineI);
             },
             get upperCharI(){
-                if(this.start.line > this.current.line)
+                if(this.start.lineI > this.current.lineI)
                     return this.start.charI;
-                if(this.start.line < this.current.line)
+                if(this.start.lineI < this.current.lineI)
                     return this.current.charI;
                 return Math.max(this.start.charI, this.current.charI);
             },
             get isNull(){
                 if(
-                    this.start.line === this.current.line &&
+                    this.start.lineI === this.current.lineI &&
                     this.start.charI === this.current.charI
                 ) return true;
                 return false;
@@ -54,7 +54,7 @@ class Selection{
 
     focusLost(){
         this.nodeI = null;
-        this.cursor.line = -1;
+        this.cursor.lineI = -1;
         this.cursor.charI = 0;
         this.range.initTo(0, 0);
     }
@@ -78,7 +78,6 @@ class NodeContainer{
         let sizeInit = {
             lineW: NODE_WIDTH+1, // Width of line (chars)
             maxLines: NODE_HEIGHT, // Maximum number of lines
-            extraH: CHAR_GAP*2, // Extra height of main text box (px)
             sideW: ACC_MIN.toString().length+1, // Width of side boxes (chars)
             sideWPx: 0 // Width of side boxes (px)
         };
@@ -106,13 +105,13 @@ class NodeContainer{
         if(this.select.nodeI === null) return null;
 
         return {
-            line: this.cursor.line,
+            lineI: this.cursor.lineI,
             charI: this.cursor.charI
         };
     }
     compareCursors(prevCursor){
         if(
-            prevCursor.line !== this.cursor.line ||
+            prevCursor.lineI !== this.cursor.lineI ||
             prevCursor.charI !== this.cursor.charI
         ){
             this.select.resetBlinker();
@@ -124,7 +123,7 @@ class NodeContainer{
 
         let [cornerX, cornerY] = this._nodeTopLeft(this.select.nodeI);
         this._cursorToMouse(this.select.nodeI, mPos, cornerX, cornerY);
-        this.select.range.current.line = this.cursor.line;
+        this.select.range.current.lineI = this.cursor.lineI;
         this.select.range.current.charI = this.cursor.charI;
         this.select.resetBlinker();
     }
@@ -151,7 +150,7 @@ class NodeContainer{
                 this.nodeLines = this.nodes[i].codeBox.lines;
 
                 this._cursorToMouse(i, mPos, cornerX, cornerY);
-                this.select.range.initTo(this.cursor.line, this.cursor.charI);
+                this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
                 this.select.resetBlinker();
                 break;
             }
@@ -167,58 +166,58 @@ class NodeContainer{
         return [cornerX, cornerY];
     }
     _cursorToMouse(nodeI, mPos, cornerX, cornerY){
-        this.cursor.line = Math.max(0, Math.min(
+        this.cursor.lineI = Math.max(0, Math.min(
             this.nodes[nodeI].codeBox.lines.strCount()-1,
             Math.floor((mPos.y-cornerY)/LINE_HEIGHT)));
         this.cursor.charI = Math.max(0, Math.min(
-            this.nodes[nodeI].codeBox.lines.strLength(this.cursor.line),
+            this.nodes[nodeI].codeBox.lines.strLen(this.cursor.lineI),
             Math.floor((mPos.x-cornerX)/CHAR_WIDTH)));
     }
 
     addChar(char){
         if(this.select.nodeI === null) return;
-        if(this.nodeLines.strLength(this.cursor.line) >= NODE_WIDTH) return;
+        if(this.nodeLines.strLen(this.cursor.lineI) >= NODE_WIDTH) return;
 
-        this.nodeLines.charAdd(this.cursor.line, this.cursor.charI, char);
+        this.nodeLines.charAdd(this.cursor.lineI, this.cursor.charI, char);
         this.cursor.charI += 1;
     }
     newLine(){
         if(this.nodeLines.strCount() >= NODE_HEIGHT) return;
 
         let distToEndOfLine =
-            this.nodeLines.strLength(this.cursor.line) - this.cursor.charI;
+            this.nodeLines.strLen(this.cursor.lineI) - this.cursor.charI;
 
-        this.nodeLines.strAdd(this.cursor.line);
-        this.cursor.line += 1;
+        this.nodeLines.strAdd(this.cursor.lineI);
+        this.cursor.lineI += 1;
         this.cursor.charI = 0;
 
         if(distToEndOfLine > 0){
             let strToMove = this.nodeLines.strCut(
-                this.cursor.line-1, distToEndOfLine);
-            this.nodeLines.strSet(this.cursor.line, strToMove);
+                this.cursor.lineI-1, distToEndOfLine);
+            this.nodeLines.strSet(this.cursor.lineI, strToMove);
         }
     }
     bakChar(){
         if(!this.select.range.isNull){
             this.delSelection();
         }else if(this.cursor.charI > 0){
-            this.nodeLines.charDel(this.cursor.line, this.cursor.charI);
+            this.nodeLines.charDel(this.cursor.lineI, this.cursor.charI);
             this.cursor.charI -= 1;
-        }else if(this.cursor.line > 0){
+        }else if(this.cursor.lineI > 0){
             if(
-                this.nodeLines.strLength(this.cursor.line-1) +
-                this.nodeLines.strLength(this.cursor.line) <=
+                this.nodeLines.strLen(this.cursor.lineI-1) +
+                this.nodeLines.strLen(this.cursor.lineI) <=
                 NODE_WIDTH
             ){
-                this.cursor.line -= 1;
-                this.cursor.charI = this.nodeLines.strLength(this.cursor.line);
+                this.cursor.lineI -= 1;
+                this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
 
                 let combinedStr =
-                    this.nodeLines.strGet(this.cursor.line) +
-                    this.nodeLines.strGet(this.cursor.line+1);
-                this.nodeLines.strSet(this.cursor.line, combinedStr);
+                    this.nodeLines.strGet(this.cursor.lineI) +
+                    this.nodeLines.strGet(this.cursor.lineI+1);
+                this.nodeLines.strSet(this.cursor.lineI, combinedStr);
 
-                this.nodeLines.strDel(this.cursor.line+1);
+                this.nodeLines.strDel(this.cursor.lineI+1);
             }
         }
     }
@@ -226,21 +225,21 @@ class NodeContainer{
         if(!this.select.range.isNull){
             this.delSelection();
         }else if(
-            this.cursor.charI < this.nodeLines.strLength(this.cursor.line)
+            this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)
         ){
-            this.nodeLines.charDel(this.cursor.line, this.cursor.charI+1);
-        }else if(this.cursor.line < this.nodeLines.strCount()-1){
+            this.nodeLines.charDel(this.cursor.lineI, this.cursor.charI+1);
+        }else if(this.cursor.lineI < this.nodeLines.strCount()-1){
             if(
-                this.nodeLines.strLength(this.cursor.line) +
-                this.nodeLines.strLength(this.cursor.line+1) <=
+                this.nodeLines.strLen(this.cursor.lineI) +
+                this.nodeLines.strLen(this.cursor.lineI+1) <=
                 NODE_WIDTH
             ){
                 let combinedStr =
-                    this.nodeLines.strGet(this.cursor.line) +
-                    this.nodeLines.strGet(this.cursor.line+1);
-                this.nodeLines.strSet(this.cursor.line, combinedStr);
+                    this.nodeLines.strGet(this.cursor.lineI) +
+                    this.nodeLines.strGet(this.cursor.lineI+1);
+                this.nodeLines.strSet(this.cursor.lineI, combinedStr);
 
-                this.nodeLines.strDel(this.cursor.line+1);
+                this.nodeLines.strDel(this.cursor.lineI+1);
             }
         }
     }
@@ -249,7 +248,7 @@ class NodeContainer{
 
         if(
             this.select.range.lowerCharI +
-            this.nodeLines.strLength(this.select.range.upperLine) -
+            this.nodeLines.strLen(this.select.range.upperLine) -
             this.select.range.upperCharI <= NODE_WIDTH
         ){
             let combinedStr =
@@ -265,9 +264,9 @@ class NodeContainer{
                 this.nodeLines.strDel(this.select.range.lowerLine+1);
             }
 
-            this.cursor.line = this.select.range.lowerLine;
+            this.cursor.lineI = this.select.range.lowerLine;
             this.cursor.charI = this.select.range.lowerCharI;
-            this.select.range.initTo(this.cursor.line, this.cursor.charI);
+            this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
         }
     }
 
@@ -276,43 +275,43 @@ class NodeContainer{
         if(keyCode === 0){ // Left
             if(this.cursor.charI > 0){
                 this.cursor.charI -= 1;
-            }else if(this.cursor.line > 0){
-                this.cursor.line -= 1;
-                this.cursor.charI = this.nodeLines.strLength(this.cursor.line);
+            }else if(this.cursor.lineI > 0){
+                this.cursor.lineI -= 1;
+                this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
             }
         }else if(keyCode === 1){ // Up
-            if(this.cursor.line > 0){
-                this.cursor.line -= 1;
+            if(this.cursor.lineI > 0){
+                this.cursor.lineI -= 1;
                 if(
                     this.cursor.charI >
-                    this.nodeLines.strLength(this.cursor.line)
+                    this.nodeLines.strLen(this.cursor.lineI)
                 ){
                     this.cursor.charI =
-                        this.nodeLines.strLength(this.cursor.line);
+                        this.nodeLines.strLen(this.cursor.lineI);
                 }
             }else{
                 this.cursor.charI = 0;
             }
         }else if(keyCode === 2){ // Right
-            if(this.cursor.charI < this.nodeLines.strLength(this.cursor.line)){
+            if(this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)){
                 this.cursor.charI += 1;
-            }else if(this.cursor.line < this.nodeLines.strCount()-1){
-                this.cursor.line += 1;
+            }else if(this.cursor.lineI < this.nodeLines.strCount()-1){
+                this.cursor.lineI += 1;
                 this.cursor.charI = 0;
             }
         }else if(keyCode === 3){ // Down
-            if(this.cursor.line < this.nodeLines.strCount()-1){
-                this.cursor.line += 1;
+            if(this.cursor.lineI < this.nodeLines.strCount()-1){
+                this.cursor.lineI += 1;
                 if(
                     this.cursor.charI >
-                    this.nodeLines.strLength(this.cursor.line)
+                    this.nodeLines.strLen(this.cursor.lineI)
                 ){
                     this.cursor.charI =
-                        this.nodeLines.strLength(this.cursor.line);
+                        this.nodeLines.strLen(this.cursor.lineI);
                 }
             }else{
                 this.cursor.charI =
-                    this.nodeLines.strLength(this.cursor.line);
+                    this.nodeLines.strLen(this.cursor.lineI);
             }
         }
     }
@@ -327,11 +326,11 @@ class NodeContainer{
         this.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);
     }
     selectAll(){
-        this.select.range.start.line = this.select.range.start.charI = 0
-        this.cursor.line = this.select.range.current.line = 
+        this.select.range.start.lineI = this.select.range.start.charI = 0
+        this.cursor.lineI = this.select.range.current.lineI = 
             this.nodeLines.strCount()-1;
         this.cursor.charI = this.select.range.current.charI =
-            this.nodeLines.strLength(this.cursor.line);
+            this.nodeLines.strLen(this.cursor.lineI);
     }
 
     drawNodes(){

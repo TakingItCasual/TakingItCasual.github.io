@@ -46,7 +46,7 @@ class StringList{
         // The substr crops the strValue to prevent text overflow
         this.lineStrs[strI] = strValue.substr(0, this.lineW);
     }
-    strLength(strI){
+    strLen(strI){
         if(strI >= this.lineStrs.length) return 0;
         return this.lineStrs[strI].length;
     }
@@ -75,18 +75,17 @@ class StringList{
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
     constructor({
-        x, y, lineW, maxLines, extraH, offsetY=0, centered=false, borderW=1
+        x, y, lineW, maxLines, extraH=0, offsetY=0, centered=false, borderW=1
     }){
         super({
             x: x,
             y: y,
             w: lineW*CHAR_WIDTH + CHAR_GAP*2,
-            h: maxLines*LINE_HEIGHT + CHAR_GAP + 1 + extraH,
+            h: maxLines*LINE_HEIGHT + 3*CHAR_GAP + 1 + extraH,
             borderW: borderW
         });
         this.lineW = lineW; // Width of the box in terms of characters
         this.maxLines = maxLines; // Maximum number of string lines
-        this.extraH = extraH; // Extra height of the box (px)
         this.offsetY = offsetY; // Custom y-offset for text lines (px)
         this.centered = centered; // If true, center text within box's width
 
@@ -94,20 +93,20 @@ class BoxText extends Box{
     }
 
     // Draws text from lineString to the canvas (extraY used for "FAILURE")
-    drawLine(line, color=ctx.fillStyle, extraY=0){
+    drawLine(lineI, color=ctx.fillStyle, extraY=0){
         let offsetX = 0;
         if(this.centered){ // Centers text within box's width
-            offsetX = (CHAR_WIDTH/2)*(this.lineW - this.lines.strLength(line));
+            offsetX = (CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
         }
         ctx.fillStyle = color;
         ctx.fillText(
-            this.lines.strGet(line),
+            this.lines.strGet(lineI),
             this.x+CHAR_GAP + offsetX,
-            this.y+CHAR_GAP + (line+1)*LINE_HEIGHT + this.offsetY+extraY
+            this.y+CHAR_GAP + (lineI+1)*LINE_HEIGHT + this.offsetY+extraY
         );
     }
     // Used to draw those solid color boxes (and bars)
-    drawBar(line, startChar, endChar, barColor, extraStart=0, extraEnd=0){
+    drawBar(lineI, startChar, endChar, barColor, extraStart=0, extraEnd=0){
         let offsetX = 0;
         if(this.centered){ // Centers text within box's width
             offsetX = (CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
@@ -115,7 +114,7 @@ class BoxText extends Box{
         ctx.fillStyle = barColor;
         ctx.fillRect(
             this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart,
-            this.y + (line)*LINE_HEIGHT + 2*CHAR_GAP - Math.floor(CHAR_GAP/2)
+            this.y + lineI*LINE_HEIGHT + 2*CHAR_GAP - Math.floor(CHAR_GAP/2)
                 + this.offsetY,
             (endChar-startChar)*CHAR_WIDTH + extraStart+extraEnd,
             LINE_HEIGHT
@@ -125,14 +124,12 @@ class BoxText extends Box{
 
 // Can divide a line into different colors for comments and selection
 class BoxCode extends BoxText{
-    constructor({x, y, lineW, maxLines, extraH, offsetY}){
+    constructor({x, y, lineW, maxLines}){
         super({
             x: x,
             y: y,
             lineW: lineW,
-            maxLines: maxLines,
-            extraH: extraH,
-            offsetY: offsetY
+            maxLines: maxLines
         });
         this.activeLine = null; // Indicates currently executing line
         this.executable = true; // True if the current line was just reached
@@ -159,14 +156,14 @@ class BoxCode extends BoxText{
             let selectStart = -1;
             let selectEnd = -1;
             // Draws bar under selected text
-            if(select.lineSelected(i) && this.activeLine === null){
+            if(select.lineSelected(i)){
                 if(select.range.lowerLine < i)
                     selectStart = 0;
                 else
                     selectStart = select.range.lowerCharI;
 
                 if(select.range.upperLine > i)
-                    selectEnd = this.lines.strLength(i);
+                    selectEnd = this.lines.strLen(i);
                 else
                     selectEnd = select.range.upperCharI;
 
@@ -184,11 +181,11 @@ class BoxCode extends BoxText{
         }
 
         // Blinking thingy
-        if(this.activeLine === null && select.cursor.line !== -1){
+        if(select.cursor.lineI !== -1){
             let blinkTime = (Date.now() - select.cursorBlink) % 800;
             if(blinkTime < 400){ // Get the blinking thingy to blink every 800ms
                 this.drawBar(
-                    select.cursor.line, select.cursor.charI,
+                    select.cursor.lineI, select.cursor.charI,
                     select.cursor.charI+1, CURSOR_WHITE
                 );
             }
@@ -196,40 +193,27 @@ class BoxCode extends BoxText{
     }
     // Draws text lines, using seperate coloring for comments/selection
     drawSplitLine(lineI, commentStart, selectStart, selectEnd){
-        // To ensure that the Math.min calculations work properly
-        if(commentStart === -1) commentStart = NODE_WIDTH;
-        if(selectStart === -1) selectStart = selectEnd = NODE_WIDTH;
-
         let strParts = []; // List of lists of string indexes and colors
 
-        if(Math.min(commentStart, selectStart) > 0)
+        if(Math.max(commentStart, selectStart) > 0)
             strParts.push([0, DIM_WHITE]);
-        if(commentStart !== NODE_WIDTH && selectStart === NODE_WIDTH){
-            if(commentStart > 0)
-                strParts.push([commentStart, COMMENT_GRAY]);
-            else
-                strParts.push([0, COMMENT_GRAY]);
-        }else if(commentStart === NODE_WIDTH && selectStart !== NODE_WIDTH){
-            if(selectStart > 0){
-                strParts.push([selectStart, WHITE]);
-                if(selectEnd < this.lines.strLength(lineI))
-                    strParts.push([selectEnd, DIM_WHITE]);
-            }else{
-                strParts.push([selectStart, WHITE]);
-                if(selectEnd < this.lines.strLength(lineI))
-                    strParts.push([selectEnd, DIM_WHITE]);
-            }
+        if(commentStart !== -1 && selectStart === -1){
+            strParts.push([commentStart, COMMENT_GRAY]);
+        }else if(commentStart === -1 && selectStart !== -1){
+            strParts.push([selectStart, WHITE]);
+            if(selectEnd < this.lines.strLen(lineI))
+                strParts.push([selectEnd, DIM_WHITE]);
         }else{
             if(commentStart <= selectStart){
                 if(commentStart < selectStart)
                     strParts.push([commentStart, COMMENT_GRAY]);
                 strParts.push([selectStart, DIM_WHITE]);
-                if(selectEnd < this.lines.strLength(lineI))
+                if(selectEnd < this.lines.strLen(lineI))
                     strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(selectStart < commentStart && commentStart < selectEnd){
                 strParts.push([selectStart, WHITE]);
                 strParts.push([commentStart, DIM_WHITE]);
-                if(selectEnd < this.lines.strLength(lineI))
+                if(selectEnd < this.lines.strLen(lineI))
                     strParts.push([selectEnd, COMMENT_GRAY]);
             }else if(commentStart >= selectEnd){
                 strParts.push([selectStart, WHITE]);
@@ -239,7 +223,7 @@ class BoxCode extends BoxText{
             }
         }
 
-        strParts.push([this.lines.strLength(lineI), null]);
+        strParts.push([this.lines.strLen(lineI), null]);
         for(let i=0; i<strParts.length-1; i++){
             ctx.fillStyle = strParts[i][1];
             ctx.fillText(

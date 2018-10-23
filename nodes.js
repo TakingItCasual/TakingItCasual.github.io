@@ -10,7 +10,6 @@ class CorruptNode{
             y: y+2,
             lineW: sizeInit.lineW,
             maxLines: sizeInit.maxLines,
-            extraH: sizeInit.extraH,
             centered: true
         });
 
@@ -74,10 +73,10 @@ class CorruptNode{
         this.nodeBox.drawBox(DARK_RED);
 
         this.descBox.drawBox(DARK_RED);
-        this.descBox.drawBar(2, 0, this.descBox.lines.strLength(4), LIGHT_RED);
+        this.descBox.drawBar(2, 0, this.descBox.lines.strLen(4), LIGHT_RED);
         this.descBox.drawLine(4, DARK_RED);
         this.descBox.drawLine(5, DARK_RED, 2);
-        this.descBox.drawBar(7, 0, this.descBox.lines.strLength(4), LIGHT_RED);
+        this.descBox.drawBar(7, 0, this.descBox.lines.strLen(4), LIGHT_RED);
 
         this.sideBox1.drawBox(DARK_RED);
         this.sideBox2.drawBox(DARK_RED);
@@ -94,8 +93,7 @@ class ComputeNode{
             x: x+2,
             y: y+2,
             lineW: sizeInit.lineW,
-            maxLines: sizeInit.maxLines,
-            extraH: sizeInit.extraH
+            maxLines: sizeInit.maxLines
         });
 
         // Expands the five boxes next to the codeBox to match its height
@@ -116,7 +114,7 @@ class ComputeNode{
             y: y+2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: sizeInit.extraH + expandCalc(0, false),
+            extraH: expandCalc(0, false),
             offsetY: expandCalc(0, true),
             centered: true
         });
@@ -129,7 +127,7 @@ class ComputeNode{
             y: this.accBox.y+this.accBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: sizeInit.extraH + expandCalc(1, false),
+            extraH: expandCalc(1, false),
             offsetY: expandCalc(1, true),
             centered: true
         });
@@ -142,7 +140,7 @@ class ComputeNode{
             y: this.bakBox.y+this.bakBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: sizeInit.extraH + expandCalc(2, false),
+            extraH: expandCalc(2, false),
             offsetY: expandCalc(2, true),
             centered: true
         });
@@ -155,7 +153,7 @@ class ComputeNode{
             y: this.lastBox.y+this.lastBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: sizeInit.extraH + expandCalc(3, false),
+            extraH: expandCalc(3, false),
             offsetY: expandCalc(3, true), 
             centered: true
         });
@@ -168,7 +166,7 @@ class ComputeNode{
             y: this.modeBox.y+this.modeBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: sizeInit.extraH + expandCalc(4, false),
+            extraH: expandCalc(4, false),
             offsetY: expandCalc(4, true),
             centered: true
         });
@@ -249,7 +247,6 @@ class StackMemNode{
             y: y+2,
             lineW: sizeInit.lineW,
             maxLines: sizeInit.maxLines,
-            extraH: sizeInit.extraH,
             centered: true
         });
         this.descBox.lines.strSet(7, "STACK MEMORY NODE");
@@ -259,7 +256,6 @@ class StackMemNode{
             y: y+2,
             lineW: sizeInit.sideW,
             maxLines: sizeInit.maxLines,
-            extraH: sizeInit.extraH,
             centered: true
         });
 
@@ -276,9 +272,9 @@ class StackMemNode{
 
         // Draws the description box ("STACK MEMORY NODE")
         this.descBox.drawBox(DIM_WHITE);
-        this.descBox.drawBar(5, 0, this.descBox.lines.strLength(7), WHITE);
+        this.descBox.drawBar(5, 0, this.descBox.lines.strLen(7), WHITE);
         this.descBox.drawLine(7, DIM_WHITE);
-        this.descBox.drawBar(9, 0, this.descBox.lines.strLength(7), WHITE);
+        this.descBox.drawBar(9, 0, this.descBox.lines.strLen(7), WHITE);
 
         this.memoryBox.drawBox(DIM_WHITE);
         // Prints out each value in memory
