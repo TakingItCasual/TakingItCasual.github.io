@@ -17,9 +17,6 @@ class CorruptNode{
         this.descBox.lines.strSet(5, "FAILURE");
 
         const remainder = (this.descBox.h-2)%4;
-        const sideX = x+this.descBox.w + 2;
-        const sideW = sizeInit.sideWPx + 4;
-        const sideH = (this.descBox.h - remainder)/2 + 3;
         function expandCalc(boxNum, y_pos){
             if(remainder === 0) return 0;
             if(boxNum === 1){
@@ -37,6 +34,9 @@ class CorruptNode{
             }
             return 0;
         } // See expandCorrupt.txt to see the desired I/O behavior
+        const sideX = x+this.descBox.w + 2;
+        const sideW = sizeInit.sideWPx + 4;
+        const sideH = (this.descBox.h - remainder)/2 + 3;
 
         this.sideBox1 = new Box({
             x: sideX,
@@ -96,20 +96,23 @@ class ComputeNode{
             maxLines: sizeInit.maxLines
         });
 
-        // Expands the five boxes next to the codeBox to match its height
-        let expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+        // Expand the five info boxes next to the codeBox to match its height
+        const info_boxes = 5;
+        let expand =
+            this.codeBox.h - info_boxes*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
         expand = Math.max(0, expand); // Don't want them to compress
         function expandCalc(boxNum){
             if(expand === 0) return 0;
             boxNum *= 2;
-            let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
-            if((expand-boxNum-1)%(INFO_BOXES*2) === 0) total -= 1;
+            let total = 2*(Math.floor((expand-boxNum-1)/(info_boxes*2))+1);
+            if((expand-boxNum-1)%(info_boxes*2) === 0) total -= 1;
             return total;
         } // See expand.txt to see the desired I/O behavior
+        const sideX = x+this.codeBox.w+4;
 
         // Initialize the ACC box
         this.accBox = new BoxText({
-            x: x+this.codeBox.w+4,
+            x: sideX,
             y: y+2,
             lineW: sizeInit.sideW,
             maxLines: 2,
@@ -121,7 +124,7 @@ class ComputeNode{
 
         // Initialize the BAK box
         this.bakBox = new BoxText({
-            x: x+this.codeBox.w+4,
+            x: sideX,
             y: this.accBox.y+this.accBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
@@ -133,7 +136,7 @@ class ComputeNode{
 
         // Initialize the LAST box
         this.lastBox = new BoxText({
-            x: x+this.codeBox.w+4,
+            x: sideX,
             y: this.bakBox.y+this.bakBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
@@ -145,7 +148,7 @@ class ComputeNode{
 
         // Initialize the MODE box
         this.modeBox = new BoxText({
-            x: x+this.codeBox.w+4,
+            x: sideX,
             y: this.lastBox.y+this.lastBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
@@ -157,7 +160,7 @@ class ComputeNode{
 
         // Initialize the IDLE box
         this.idleBox = new BoxText({
-            x: x+this.codeBox.w+4,
+            x: sideX,
             y: this.modeBox.y+this.modeBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,

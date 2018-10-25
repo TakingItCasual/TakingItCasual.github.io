@@ -157,12 +157,12 @@ class BoxCode extends BoxText{
             let selectEnd = -1;
             // Draws bar under selected text
             if(select.lineSelected(i)){
-                if(select.range.lowerLine < i)
+                if(select.range.lowerLineI < i)
                     selectStart = 0;
                 else
                     selectStart = select.range.lowerCharI;
 
-                if(select.range.upperLine > i)
+                if(select.range.upperLineI > i)
                     selectEnd = this.lines.strLen(i);
                 else
                     selectEnd = select.range.upperCharI;

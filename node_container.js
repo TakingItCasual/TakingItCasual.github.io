@@ -12,7 +12,7 @@ class Selection{
                 this.start.lineI = this.current.lineI = lineI;
                 this.start.charI = this.current.charI = charI;
             },
-            get lowerLine(){
+            get lowerLineI(){
                 return Math.min(this.start.lineI, this.current.lineI);
             },
             get lowerCharI(){
@@ -22,7 +22,7 @@ class Selection{
                     return this.current.charI;
                 return Math.min(this.start.charI, this.current.charI);
             },
-            get upperLine(){
+            get upperLineI(){
                 return Math.max(this.start.lineI, this.current.lineI);
             },
             get upperCharI(){
@@ -31,6 +31,10 @@ class Selection{
                 if(this.start.lineI < this.current.lineI)
                     return this.current.charI;
                 return Math.max(this.start.charI, this.current.charI);
+            },
+            get lineCount(){
+                if(this.isNull) return 0;
+                return this.upperLineI - this.lowerLineI + 1;
             },
             get isNull(){
                 if(
@@ -43,11 +47,11 @@ class Selection{
         this.cursorBlink = Date.now();
     }
 
-    lineSelected(line){
+    lineSelected(lineI){
         if(this.range.isNull) return false;
         if(
-            this.range.lowerLine <= line &&
-            this.range.upperLine >= line
+            this.range.lowerLineI <= lineI &&
+            this.range.upperLineI >= lineI
         ) return true;
         return false;
     }
@@ -248,19 +252,17 @@ class NodeContainer{
     delSelection(){
         if(this._delSelectionInfo() !== null){
             let combinedStr =
-                this.nodeLines.strGet(this.select.range.lowerLine).substr(
+                this.nodeLines.strGet(this.select.range.lowerLineI).substr(
                     0, this.select.range.lowerCharI) +
-                this.nodeLines.strGet(this.select.range.upperLine).substr(
+                this.nodeLines.strGet(this.select.range.upperLineI).substr(
                     this.select.range.upperCharI);
-            this.nodeLines.strSet(this.select.range.lowerLine, combinedStr);
+            this.nodeLines.strSet(this.select.range.lowerLineI, combinedStr);
 
-            let linesToDelete =
-                this.select.range.upperLine - this.select.range.lowerLine;
-            for(let i=linesToDelete; i>0; i--){
-                this.nodeLines.strDel(this.select.range.lowerLine+1);
+            for(let i=this.select.range.lineCount-1; i>0; i--){
+                this.nodeLines.strDel(this.select.range.lowerLineI+1);
             }
 
-            this.cursor.lineI = this.select.range.lowerLine;
+            this.cursor.lineI = this.select.range.lowerLineI;
             this.cursor.charI = this.select.range.lowerCharI;
             this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
         }
@@ -270,12 +272,12 @@ class NodeContainer{
 
         let newLowerLineLen =
             this.select.range.lowerCharI +
-            this.nodeLines.strLen(this.select.range.upperLine) -
+            this.nodeLines.strLen(this.select.range.upperLineI) -
             this.select.range.upperCharI;
         if(newLowerLineLen > NODE_WIDTH) return null;
 
         let newLineCount = this.nodeLines.strCount() -
-            this.select.range.upperLine - this.select.range.lowerLine;
+            this.select.range.upperLineI - this.select.range.lowerLineI;
         return [newLowerLineLen, newLineCount];
     }
 
@@ -326,10 +328,37 @@ class NodeContainer{
     }
 
     attemptCopy(){
-        return "aoeui";
+        if(this.select.nodeI === null) return null;
+        if(this.select.range.isNull) return null;
+
+        if(this.select.range.lineCount === 1){
+            return this.nodeLines.strGet(
+                this.select.range.lowerLineI).substring(
+                    this.select.range.lowerCharI,
+                    this.select.range.upperCharI);
+        }
+
+        let strParts = [this.nodeLines.strGet(
+            this.select.range.lowerLineI).substr(
+                this.select.range.lowerCharI)];
+        for(let i=1; i<this.select.range.lineCount-1; i++){
+            strParts.push(this.nodeLines.strGet(
+                this.select.range.lowerLineI + i));
+        }
+        strParts.push(this.nodeLines.strGet(
+            this.select.range.upperLineI).substr(
+                0, this.select.range.upperCharI));
+
+        return strParts.join("\n");
     }
     attemptCut(){
-        return "iueoa";
+        let savedSelection = this.attemptCopy();
+        if(savedSelection === null) return null;
+
+        if(this._delSelectionInfo() === null) return null;
+        this.delSelection();
+
+        return savedSelection;
     }
     attemptPaste(clipboardStr){
         this.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);

@@ -8,7 +8,6 @@ const CHAR_HEIGHT = 9; // Height of the actual characters. Multiple of 9
 const CHAR_WIDTH = CHAR_HEIGHT/9*8; // Characters' width, including pixel after
 const CHAR_GAP = 3; // Gap between rows and from sides. Min: 2
 const LINE_HEIGHT = CHAR_HEIGHT + CHAR_GAP; // Used for spacing lines apart
-const INFO_BOXES = 5; // For ACC, BAK, LAST, MODE, and IDLE
 
 const DIM_WHITE = "#C8C8C8"; // Used for the boxes and code
 const DESC_WHITE = "#B4B4B4"; // Used for text not in a node
@@ -25,7 +24,6 @@ const LIGHT_RED = "#BF0D0D"; // Used for corruptNode's red bars and syntax error
 const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
 const ALLOWED_CHARS = /^[\x20-\x7E]*$/; // printable ASCII characters in regex
-const RN_END = "\x0D\x0A"; // \r\n: Added to ends for copy/paste compatibility
 
 let canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");
