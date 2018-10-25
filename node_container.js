@@ -156,9 +156,6 @@ class NodeContainer{
             }
         }
     }
-    lmbUp(mPos){ // Left mouse button released
-
-    }
     _nodeTopLeft(nodeI){
         let cornerX = this.nodes[nodeI].codeBox.x + CHAR_GAP;
         let cornerY = this.nodes[nodeI].codeBox.y + 2*CHAR_GAP +
@@ -175,8 +172,15 @@ class NodeContainer{
     }
 
     addChar(char){
-        if(this.select.nodeI === null) return;
-        if(this.nodeLines.strLen(this.cursor.lineI) >= NODE_WIDTH) return;
+        if(!this.select.range.isNull){
+            let delSelectionInfo = this._delSelectionInfo();
+            if(delSelectionInfo === null) return;
+            if(delSelectionInfo[0]+1 > NODE_WIDTH) return;
+
+            this.delSelection();
+        }else if(this.nodeLines.strLen(this.cursor.lineI) >= NODE_WIDTH){
+            return;
+        }
 
         this.nodeLines.charAdd(this.cursor.lineI, this.cursor.charI, char);
         this.cursor.charI += 1;
@@ -224,9 +228,7 @@ class NodeContainer{
     delChar(){
         if(!this.select.range.isNull){
             this.delSelection();
-        }else if(
-            this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)
-        ){
+        }else if(this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)){
             this.nodeLines.charDel(this.cursor.lineI, this.cursor.charI+1);
         }else if(this.cursor.lineI < this.nodeLines.strCount()-1){
             if(
@@ -244,13 +246,7 @@ class NodeContainer{
         }
     }
     delSelection(){
-        if(this.select.range.isNull) return;
-
-        if(
-            this.select.range.lowerCharI +
-            this.nodeLines.strLen(this.select.range.upperLine) -
-            this.select.range.upperCharI <= NODE_WIDTH
-        ){
+        if(this._delSelectionInfo() !== null){
             let combinedStr =
                 this.nodeLines.strGet(this.select.range.lowerLine).substr(
                     0, this.select.range.lowerCharI) +
@@ -268,6 +264,19 @@ class NodeContainer{
             this.cursor.charI = this.select.range.lowerCharI;
             this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
         }
+    }
+    _delSelectionInfo(){
+        if(this.select.range.isNull) return null;
+
+        let newLowerLineLen =
+            this.select.range.lowerCharI +
+            this.nodeLines.strLen(this.select.range.upperLine) -
+            this.select.range.upperCharI;
+        if(newLowerLineLen > NODE_WIDTH) return null;
+
+        let newLineCount = this.nodeLines.strCount() -
+            this.select.range.upperLine - this.select.range.lowerLine;
+        return [newLowerLineLen, newLineCount];
     }
 
     arrowKey(keyCode){
@@ -327,7 +336,7 @@ class NodeContainer{
     }
     selectAll(){
         this.select.range.start.lineI = this.select.range.start.charI = 0
-        this.cursor.lineI = this.select.range.current.lineI = 
+        this.cursor.lineI = this.select.range.current.lineI =
             this.nodeLines.strCount()-1;
         this.cursor.charI = this.select.range.current.charI =
             this.nodeLines.strLen(this.cursor.lineI);

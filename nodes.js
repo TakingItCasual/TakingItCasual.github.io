@@ -97,14 +97,13 @@ class ComputeNode{
         });
 
         // Expands the five boxes next to the codeBox to match its height
-        const expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
-        if(expand < 0) expand = 0; // Don't want them to compress
-        function expandCalc(boxNum, divide){
+        let expand = this.codeBox.h - 5*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
+        expand = Math.max(0, expand); // Don't want them to compress
+        function expandCalc(boxNum){
             if(expand === 0) return 0;
             boxNum *= 2;
             let total = 2*(Math.floor((expand-boxNum-1)/(INFO_BOXES*2))+1);
             if((expand-boxNum-1)%(INFO_BOXES*2) === 0) total -= 1;
-            if(divide) total = Math.floor(total/2);
             return total;
         } // See expand.txt to see the desired I/O behavior
 
@@ -114,8 +113,7 @@ class ComputeNode{
             y: y+2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: expandCalc(0, false),
-            offsetY: expandCalc(0, true),
+            extraH: expandCalc(0),
             centered: true
         });
         this.ACC = 0;
@@ -127,8 +125,7 @@ class ComputeNode{
             y: this.accBox.y+this.accBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: expandCalc(1, false),
-            offsetY: expandCalc(1, true),
+            extraH: expandCalc(1),
             centered: true
         });
         this.BAK = 0;
@@ -140,8 +137,7 @@ class ComputeNode{
             y: this.bakBox.y+this.bakBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: expandCalc(2, false),
-            offsetY: expandCalc(2, true),
+            extraH: expandCalc(2),
             centered: true
         });
         this.LAST = null;
@@ -153,8 +149,7 @@ class ComputeNode{
             y: this.lastBox.y+this.lastBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: expandCalc(3, false),
-            offsetY: expandCalc(3, true), 
+            extraH: expandCalc(3),
             centered: true
         });
         this.MODE = "IDLE";
@@ -166,8 +161,7 @@ class ComputeNode{
             y: this.modeBox.y+this.modeBox.h + 2,
             lineW: sizeInit.sideW,
             maxLines: 2,
-            extraH: expandCalc(4, false),
-            offsetY: expandCalc(4, true),
+            extraH: expandCalc(4),
             centered: true
         });
         this.IDLE = 0;

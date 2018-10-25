@@ -75,7 +75,7 @@ class StringList{
 // Can draw text and bars now. Dimensions set relative to font dimensions
 class BoxText extends Box{
     constructor({
-        x, y, lineW, maxLines, extraH=0, offsetY=0, centered=false, borderW=1
+        x, y, lineW, maxLines, extraH=0, centered=false, borderW=1
     }){
         super({
             x: x,
@@ -86,7 +86,7 @@ class BoxText extends Box{
         });
         this.lineW = lineW; // Width of the box in terms of characters
         this.maxLines = maxLines; // Maximum number of string lines
-        this.offsetY = offsetY; // Custom y-offset for text lines (px)
+        this.offsetY = Math.floor(extraH/2); // Y-padding for text lines (px)
         this.centered = centered; // If true, center text within box's width
 
         this.lines = new StringList(this.lineW, this.maxLines);

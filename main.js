@@ -23,18 +23,12 @@ function getMousePos(canvas, evt) {
 }
 
 let mPos = { x: 0, y: 0 }; // Mouse position
-let mDown = false; // If the left mouse button is held down
 window.addEventListener("mousemove", function(evt) {
     mPos = getMousePos(canvas, evt);
-    if(mDown) allNodes.mouseDrag(mPos);
+    if(evt.buttons % 2 === 1) allNodes.mouseDrag(mPos);
 });
 window.addEventListener("mousedown", function(evt) {
-    mDown = true;
     allNodes.lmbDown(mPos);
-});
-window.addEventListener("mouseup", function(evt) {
-    mDown = false;
-    allNodes.lmbUp(mPos);
 });
 
 window.addEventListener("keypress", function(evt) {
