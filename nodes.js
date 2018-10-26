@@ -98,9 +98,8 @@ class ComputeNode{
 
         // Expand the five info boxes next to the codeBox to match its height
         const info_boxes = 5;
-        let expand =
-            this.codeBox.h - info_boxes*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8;
-        expand = Math.max(0, expand); // Don't want them to compress
+        const expand = Math.max(0,
+            this.codeBox.h - info_boxes*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8);
         function expandCalc(boxNum){
             if(expand === 0) return 0;
             boxNum *= 2;

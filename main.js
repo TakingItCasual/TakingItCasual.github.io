@@ -45,10 +45,8 @@ window.addEventListener("keypress", function(evt) {
 
     if(prevCursor === null) return;
 
-    if(ALLOWED_CHARS.test(char)){
-        allNodes.addChar(char);
-        allNodes.compareCursors(prevCursor);
-    }
+    allNodes.addChar(char);
+    allNodes.compareCursors(prevCursor);
 });
 window.addEventListener("keydown", function(evt) {
     let prevCursor = allNodes.initCompareCursors();

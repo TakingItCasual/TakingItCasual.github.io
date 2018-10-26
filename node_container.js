@@ -176,6 +176,8 @@ class NodeContainer{
     }
 
     addChar(char){
+        if(!ALLOWED_CHARS.test(char) || char.length !== 1) return;
+
         if(!this.select.range.isNull){
             let delSelectionInfo = this._delSelectionInfo();
             if(delSelectionInfo === null) return;
@@ -329,27 +331,28 @@ class NodeContainer{
 
     attemptCopy(){
         if(this.select.nodeI === null) return null;
-        if(this.select.range.isNull) return null;
 
-        if(this.select.range.lineCount === 1){
+        if(this.select.range.lineCount === 0){
+            return null;
+        }else if(this.select.range.lineCount === 1){
             return this.nodeLines.strGet(
                 this.select.range.lowerLineI).substring(
                     this.select.range.lowerCharI,
                     this.select.range.upperCharI);
-        }
-
-        let strParts = [this.nodeLines.strGet(
-            this.select.range.lowerLineI).substr(
-                this.select.range.lowerCharI)];
-        for(let i=1; i<this.select.range.lineCount-1; i++){
+        }else{
+            let strParts = [this.nodeLines.strGet(
+                this.select.range.lowerLineI).substr(
+                    this.select.range.lowerCharI)];
+            for(let i=1; i<this.select.range.lineCount-1; i++){
+                strParts.push(this.nodeLines.strGet(
+                    this.select.range.lowerLineI + i));
+            }
             strParts.push(this.nodeLines.strGet(
-                this.select.range.lowerLineI + i));
-        }
-        strParts.push(this.nodeLines.strGet(
-            this.select.range.upperLineI).substr(
-                0, this.select.range.upperCharI));
+                this.select.range.upperLineI).substr(
+                    0, this.select.range.upperCharI));
 
-        return strParts.join("\n");
+            return strParts.join("\n");
+        }
     }
     attemptCut(){
         let savedSelection = this.attemptCopy();
@@ -361,7 +364,39 @@ class NodeContainer{
         return savedSelection;
     }
     attemptPaste(clipboardStr){
-        this.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, clipboardStr);
+        if(this.select.nodeI === null) return;
+
+        let pastedLines = clipboardStr.split(/\r?\n/);
+        for(let pastedLine of pastedLines){
+            if(!ALLOWED_CHARS.test(pastedLine)) return;
+        }
+
+        let cursorLine = this.nodeLines.strGet(this.cursor.lineI);
+        if(this.select.range.isNull){
+            if(this.nodeLines.strCount() + pastedLines.length-1 > NODE_HEIGHT)
+                return;
+
+            pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI).substr(
+                0, this.cursor.charI) + pastedLines[0];
+
+            let newCursorLineI = this.cursor.lineI + pastedLines.length-1;
+            let newCursorCharI = pastedLines[pastedLines.length-1].length;
+
+            pastedLines[pastedLines.length-1] += this.nodeLines.strGet(
+                this.cursor.lineI).substr(this.cursor.charI);
+
+            for(let pastedLine of pastedLines){
+                if(pastedLine.length > NODE_WIDTH) return;
+            }
+
+            for(let i=0; i<pastedLines.length-1; i++)
+                this.nodeLines.strAdd(this.cursor.lineI);
+            for(let i=0; i<pastedLines.length; i++)
+                this.nodeLines.strSet(this.cursor.lineI+i, pastedLines[i]);
+
+            this.cursor.lineI = newCursorLineI;
+            this.cursor.charI = newCursorCharI;
+        }
     }
     selectAll(){
         this.select.range.start.lineI = this.select.range.start.charI = 0
