@@ -179,9 +179,9 @@ class NodeContainer{
         if(!ALLOWED_CHARS.test(char) || char.length !== 1) return;
 
         if(!this.select.range.isNull){
-            let delSelectionInfo = this._delSelectionInfo();
-            if(delSelectionInfo === null) return;
-            if(delSelectionInfo[0]+1 > NODE_WIDTH) return;
+            let afterDel = this._delSelectionInfo();
+            if(afterDel === null) return;
+            if(afterDel.lowerLineLen + 1 > NODE_WIDTH) return;
 
             this.delSelection();
         }else if(this.nodeLines.strLen(this.cursor.lineI) >= NODE_WIDTH){
@@ -279,8 +279,11 @@ class NodeContainer{
         if(newLowerLineLen > NODE_WIDTH) return null;
 
         let newLineCount = this.nodeLines.strCount() -
-            this.select.range.upperLineI - this.select.range.lowerLineI;
-        return [newLowerLineLen, newLineCount];
+            this.select.range.upperLineI + this.select.range.lowerLineI;
+        return {
+            lowerLineLen: newLowerLineLen,
+            lineCount: newLineCount
+        };
     }
 
     arrowKey(keyCode){
@@ -365,13 +368,15 @@ class NodeContainer{
     }
     attemptPaste(clipboardStr){
         if(this.select.nodeI === null) return;
+        if(!clipboardStr) return;
 
         let pastedLines = clipboardStr.split(/\r?\n/);
         for(let pastedLine of pastedLines){
             if(!ALLOWED_CHARS.test(pastedLine)) return;
         }
 
-        let cursorLine = this.nodeLines.strGet(this.cursor.lineI);
+        let newCursorLineI = pastedLines.length-1; // Appended to later
+        let newCursorCharI = null; // Set later
         if(this.select.range.isNull){
             if(this.nodeLines.strCount() + pastedLines.length-1 > NODE_HEIGHT)
                 return;
@@ -379,8 +384,8 @@ class NodeContainer{
             pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI).substr(
                 0, this.cursor.charI) + pastedLines[0];
 
-            let newCursorLineI = this.cursor.lineI + pastedLines.length-1;
-            let newCursorCharI = pastedLines[pastedLines.length-1].length;
+            newCursorLineI += this.cursor.lineI;
+            newCursorCharI = pastedLines[pastedLines.length-1].length;
 
             pastedLines[pastedLines.length-1] += this.nodeLines.strGet(
                 this.cursor.lineI).substr(this.cursor.charI);
@@ -388,15 +393,36 @@ class NodeContainer{
             for(let pastedLine of pastedLines){
                 if(pastedLine.length > NODE_WIDTH) return;
             }
+        }else{
+            let afterDel = this._delSelectionInfo();
 
-            for(let i=0; i<pastedLines.length-1; i++)
-                this.nodeLines.strAdd(this.cursor.lineI);
-            for(let i=0; i<pastedLines.length; i++)
-                this.nodeLines.strSet(this.cursor.lineI+i, pastedLines[i]);
+            if(afterDel === null) return;
+            if(afterDel.lineCount + pastedLines.length-1 > NODE_HEIGHT) return;
 
-            this.cursor.lineI = newCursorLineI;
-            this.cursor.charI = newCursorCharI;
+            pastedLines[0] = this.nodeLines.strGet(
+                this.select.range.lowerLineI).substr(
+                0, this.select.range.lowerCharI) + pastedLines[0];
+
+            newCursorLineI += this.select.range.lowerLineI;
+            newCursorCharI = pastedLines[pastedLines.length-1].length;
+
+            pastedLines[pastedLines.length-1] += this.nodeLines.strGet(
+                this.select.range.upperLineI).substr(
+                this.select.range.upperCharI);
+
+            for(let pastedLine of pastedLines){
+                if(pastedLine.length > NODE_WIDTH) return;
+            }
+
+            this.delSelection();
         }
+        for(let i=0; i<pastedLines.length-1; i++)
+            this.nodeLines.strAdd(this.cursor.lineI);
+        for(let i=0; i<pastedLines.length; i++)
+            this.nodeLines.strSet(this.cursor.lineI+i, pastedLines[i]);
+
+        this.cursor.lineI = newCursorLineI;
+        this.cursor.charI = newCursorCharI;
     }
     selectAll(){
         this.select.range.start.lineI = this.select.range.start.charI = 0
