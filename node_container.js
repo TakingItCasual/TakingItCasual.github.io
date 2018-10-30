@@ -4,7 +4,7 @@
 class Selection{
     constructor(){
         this.nodeI = null; // Index of ComputeNode being focused
-        this.cursor = { lineI: -1, charI: 0 }; // Cursor location
+        this.cursor = { lineI: 0, charI: 0 }; // Cursor location
         this.range = {
             start: { lineI: 0, charI: 0 },
             current: { lineI: 0, charI: 0 },
@@ -58,8 +58,7 @@ class Selection{
 
     focusLost(){
         this.nodeI = null;
-        this.cursor.lineI = -1;
-        this.cursor.charI = 0;
+        this.cursor.lineI = this.cursor.charI = 0;
         this.range.initTo(0, 0);
     }
     resetBlinker(){
@@ -76,7 +75,6 @@ class NodeContainer{
         this.nodeLines = null; // Object reference for codeBox's lines
 
         this.select = new Selection(); // Passed to the currently focused node
-        this.emptySelect = new Selection(); // Passed to unfocused nodes
         this.cursor = this.select.cursor; // Used as an object reference
 
         let sizeInit = {
@@ -192,7 +190,16 @@ class NodeContainer{
         this.cursor.charI += 1;
     }
     newLine(){
-        if(this.nodeLines.strCount() >= NODE_HEIGHT) return;
+        if(!this.select.range.isNull){
+            let afterDel = this._delSelectionInfo();
+
+            if(afterDel === null) return;
+            if(afterDel.lineCount >= NODE_HEIGHT) return;
+
+            this.delSelection();
+        }else if(this.nodeLines.strCount() >= NODE_HEIGHT){
+            return;
+        }
 
         let distToEndOfLine =
             this.nodeLines.strLen(this.cursor.lineI) - this.cursor.charI;
@@ -437,7 +444,7 @@ class NodeContainer{
             if(this.select.nodeI === i)
                 this.nodes[i].drawNode(this.select);
             else
-                this.nodes[i].drawNode(this.emptySelect);
+                this.nodes[i].drawNode(null);
         }
     }
 }

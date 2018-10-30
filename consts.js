@@ -23,7 +23,7 @@ const DARK_RED = "#A60D0D"; // Used for corruptNode boxes and text
 const LIGHT_RED = "#BF0D0D"; // Used for corruptNode's red bars and syntax error
 const MEM_RED = "#480A0A"; // Used for highlighting the top stack memory value
 
-const ALLOWED_CHARS = /^[\x20-\x7E]*$/; // printable ASCII characters in regex
+const ALLOWED_CHARS = /^[\x20-\x60\x7B-\x7E]*$/; // ASCII characters (regex)
 
 let canvas = document.getElementById("game");
 let ctx = canvas.getContext("2d");

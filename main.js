@@ -113,16 +113,17 @@ window.addEventListener("paste", function(evt){
     evt.preventDefault();
     evt.stopPropagation();
 
-    allNodes.attemptPaste(evt.clipboardData.getData("text/plain"))
+    let pastedStr = evt.clipboardData.getData("text/plain").toUpperCase();
+    allNodes.attemptPaste(pastedStr);
 });
 
 for(let i=0; i<NODE_HEIGHT-1; i++)
     allNodes.nodes[0].codeBox.lines.strSet(i, "testing " + i);
-allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght right");
 
 for(let i=0; i<NODE_HEIGHT-1; i++)
     allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NODE_HEIGHT-1));
-allNodes.nodes[1].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght, righ");
+allNodes.nodes[1].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght right");
 allNodes.nodes[1].codeBox.activeLine = NODE_HEIGHT-1;
 
 allNodes.nodes[2].memoryBox.lines.strSet(0, "254");

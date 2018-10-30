@@ -156,7 +156,7 @@ class BoxCode extends BoxText{
             let selectStart = -1;
             let selectEnd = -1;
             // Draws bar under selected text
-            if(select.lineSelected(i)){
+            if(select !== null && select.lineSelected(i)){
                 if(select.range.lowerLineI < i)
                     selectStart = 0;
                 else
@@ -181,9 +181,9 @@ class BoxCode extends BoxText{
         }
 
         // Blinking thingy
-        if(select.cursor.lineI !== -1){
+        if(select !== null){
             let blinkTime = (Date.now() - select.cursorBlink) % 800;
-            if(blinkTime < 400){ // Get the blinking thingy to blink every 800ms
+            if(blinkTime < 400){ // Blink every 0.8s
                 this.drawBar(
                     select.cursor.lineI, select.cursor.charI,
                     select.cursor.charI+1, CURSOR_WHITE
@@ -227,7 +227,7 @@ class BoxCode extends BoxText{
         for(let i=0; i<strParts.length-1; i++){
             ctx.fillStyle = strParts[i][1];
             ctx.fillText(
-                this.lines.strGet(lineI).substr(
+                this.lines.strGet(lineI).substring(
                     strParts[i][0], strParts[i+1][0]),
                 this.x+CHAR_GAP + CHAR_WIDTH*strParts[i][0],
                 this.y+CHAR_GAP + (lineI+1)*LINE_HEIGHT + this.offsetY
