@@ -10,6 +10,6 @@ Visit `TakingItCasual.github.io`_ to see it in action.
 
 .. _Zachtronics: http://www.zachtronics.com/
 
-.. _BitFontMake2: http://www.pentacom.jp/pentacom/bitfontmaker2/
+.. _BitFontMaker2: http://www.pentacom.jp/pentacom/bitfontmaker2/
 
 .. _TakingItCasual.github.io: https://TakingItCasual.github.io
