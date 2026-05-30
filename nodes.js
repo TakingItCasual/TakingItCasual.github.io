@@ -1,6 +1,6 @@
 "use strict";
 
-// Red "Communication Error" node. No functionality
+// Red "Communication Error" node (no functionality)
 class CorruptNode{
   constructor(x, y, sizeInit){
     this.nodeType = 0;
@@ -84,7 +84,7 @@ class CorruptNode{
   }
 }
 
-// Node within which the user writes their code
+// Node within which user can write code
 class ComputeNode{
   constructor(x, y, sizeInit){
     this.nodeType = 1;
@@ -99,7 +99,7 @@ class ComputeNode{
     // Expand the five info boxes next to the codeBox to match its height
     const info_boxes = 5;
     const expand = Math.max(0,
-      this.codeBox.h - info_boxes*(2*LINE_HEIGHT + CHAR_GAP*3 + 1) - 8);
+      this.codeBox.h - info_boxes*(2*NUM.LINE_HEIGHT + NUM.CHAR_GAP*3 + 1) - 8);
     function expandCalc(boxNum){
       if(expand === 0) return 0;
       boxNum *= 2;
@@ -233,7 +233,7 @@ class ComputeNode{
   }
 }
 
-// Stack memory node. Stores values given to it, which can then be retrieved
+// Node which stores retrievable values given to it
 class StackMemNode{
   constructor(x, y, sizeInit){
     this.nodeType = 2;
@@ -274,7 +274,7 @@ class StackMemNode{
 
     this.memoryBox.drawBox(COLOR.DIM_WHITE);
     // Prints out each value in memory
-    for(let i=0; i<NODE_HEIGHT; i++){
+    for(let i=0; i<NUM.NODE_HEIGHT; i++){
       // There shouldn't be any lower ones if the current line is empty
       if(!this.memoryBox.lines.strGet(i)) break;
       this.memoryBox.drawLine(i, COLOR.DIM_WHITE);

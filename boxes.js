@@ -1,6 +1,6 @@
 "use strict";
 
-// Just your standard box, containing nothing more than its own dimensions
+// Empty box, just has its dimensions and draw method
 class Box{
   constructor({x, y, w, h, borderW=1}){
     this.x = x + ((borderW-1)/2); // x-pos of box's top left
@@ -72,7 +72,7 @@ class StringList{
   }
 }
 
-// Can draw text and bars now. Dimensions set relative to font dimensions
+// Can draw text and bars, dimensions set relative to font dimensions
 class BoxText extends Box{
   constructor({
     x, y, lineW, maxLines, extraH=0, centered=false, borderW=1
@@ -80,8 +80,8 @@ class BoxText extends Box{
     super({
       x: x,
       y: y,
-      w: lineW*CHAR_WIDTH + CHAR_GAP*2,
-      h: maxLines*LINE_HEIGHT + 3*CHAR_GAP + 1 + extraH,
+      w: lineW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
+      h: maxLines*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
       borderW: borderW
     });
     this.lineW = lineW; // Width of the box in terms of characters
@@ -96,28 +96,28 @@ class BoxText extends Box{
   drawLine(lineI, color=ctx.fillStyle, extraY=0){
     let offsetX = 0;
     if(this.centered){ // Centers text within box's width
-      offsetX = (CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
+      offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
     }
     ctx.fillStyle = color;
     ctx.fillText(
       this.lines.strGet(lineI),
-      this.x+CHAR_GAP + offsetX,
-      this.y+CHAR_GAP + (lineI+1)*LINE_HEIGHT + this.offsetY+extraY
+      this.x+NUM.CHAR_GAP + offsetX,
+      this.y+NUM.CHAR_GAP + (lineI+1)*NUM.LINE_HEIGHT + this.offsetY+extraY
     );
   }
   // Used to draw those solid color boxes (and bars)
   drawBar(lineI, startChar, endChar, barColor, extraStart=0, extraEnd=0){
     let offsetX = 0;
     if(this.centered){ // Centers text within box's width
-      offsetX = (CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
+      offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
     }
     ctx.fillStyle = barColor;
     ctx.fillRect(
-      this.x+CHAR_GAP + offsetX + startChar*CHAR_WIDTH - extraStart,
-      this.y + lineI*LINE_HEIGHT + 2*CHAR_GAP - Math.floor(CHAR_GAP/2)
-        + this.offsetY,
-      (endChar-startChar)*CHAR_WIDTH + extraStart+extraEnd,
-      LINE_HEIGHT
+      this.x+NUM.CHAR_GAP + offsetX + startChar*NUM.CHAR_WIDTH - extraStart,
+      this.y + lineI*NUM.LINE_HEIGHT + 2*NUM.CHAR_GAP
+        - Math.floor(NUM.CHAR_GAP/2) + this.offsetY,
+      (endChar-startChar)*NUM.CHAR_WIDTH + extraStart+extraEnd,
+      NUM.LINE_HEIGHT
     );
   }
 }
@@ -144,7 +144,8 @@ class BoxCode extends BoxText{
       else
         ctx.fillStyle = COLOR.WAIT_EXEC;
       this.drawBar(
-        this.activeLine, 0, this.lineW, ctx.fillStyle, CHAR_GAP, CHAR_GAP-2
+        this.activeLine, 0, this.lineW, ctx.fillStyle,
+        NUM.CHAR_GAP, NUM.CHAR_GAP-2
       );
     }
 
@@ -227,8 +228,8 @@ class BoxCode extends BoxText{
       ctx.fillStyle = strParts[i][1];
       ctx.fillText(
         this.lines.strGet(lineI).substring(strParts[i][0], strParts[i+1][0]),
-        this.x+CHAR_GAP + CHAR_WIDTH*strParts[i][0],
-        this.y+CHAR_GAP + (lineI+1)*LINE_HEIGHT + this.offsetY
+        this.x+NUM.CHAR_GAP + NUM.CHAR_WIDTH*strParts[i][0],
+        this.y+NUM.CHAR_GAP + (lineI+1)*NUM.LINE_HEIGHT + this.offsetY
       );
     }
   }

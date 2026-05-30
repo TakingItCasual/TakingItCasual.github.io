@@ -1,21 +1,29 @@
 "use strict";
 
-// Characters that will fit on a BoxCode's line
-const NODE_WIDTH = Object.freeze(18);
-// Number of string lines in a node. Min: 14
-const NODE_HEIGHT = Object.freeze(15);
-// Maximum value that an ACC can contain
-const ACC_MAX = Object.freeze(999);
-// Minimum value
-const ACC_MIN = Object.freeze(-ACC_MAX);
-// Height of the actual characters. Multiple of 9
-const CHAR_HEIGHT = Object.freeze(9);
-// Characters' width, including pixel after
-const CHAR_WIDTH = Object.freeze(CHAR_HEIGHT/9*8);
-// Gap between rows and from sides. Min: 2
-const CHAR_GAP = Object.freeze(3);
-// Used for spacing lines apart
-const LINE_HEIGHT = Object.freeze(CHAR_HEIGHT + CHAR_GAP);
+const NUM = Object.freeze({
+  // Characters that will fit in a BoxCode's line
+  NODE_WIDTH: 18,
+  // Number of string lines in a node (minimum: 14)
+  NODE_HEIGHT: 15,
+  // Maximum value that an ACC can contain
+  ACC_MAX: 999,
+  // Minimum value
+  get ACC_MIN(){
+    return -this.ACC_MAX;
+  },
+  // Height of the ASCII characters (must be multiple of 9)
+  CHAR_HEIGHT: 9,
+  // Characters' width, including pixel after
+  get CHAR_WIDTH(){
+    return Math.floor(this.CHAR_HEIGHT/9*8);
+  },
+  // Gap between rows and from sides (minimum: 2)
+  CHAR_GAP: 3,
+  // Used for spacing lines apart
+  get LINE_HEIGHT(){
+    return this.CHAR_HEIGHT + this.CHAR_GAP;
+  },
+});
 
 const COLOR = Object.freeze({
   DIM_WHITE: "#C8C8C8", // Used for the boxes and code

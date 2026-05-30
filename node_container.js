@@ -76,12 +76,12 @@ class NodeContainer{
     this.cursor = this.select.cursor; // Used as an object reference
 
     let sizeInit = {
-      lineW: NODE_WIDTH+1, // Width of line (chars)
-      maxLines: NODE_HEIGHT, // Maximum number of lines
-      sideW: ACC_MIN.toString().length+1, // Width of side boxes (chars)
+      lineW: NUM.NODE_WIDTH+1, // Width of line (chars)
+      maxLines: NUM.NODE_HEIGHT, // Maximum number of lines
+      sideW: NUM.ACC_MIN.toString().length+1, // Width of side boxes (chars)
       sideWPx: 0 // Width of side boxes (px)
     };
-    sizeInit.sideWPx = sizeInit.sideW*CHAR_WIDTH + CHAR_GAP*2;
+    sizeInit.sideWPx = sizeInit.sideW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2;
 
     this.nodes = [];
     let nodeY = 53;
@@ -141,9 +141,9 @@ class NodeContainer{
       [cornerX, cornerY] = this._nodeTopLeft(i);
       if(
         mPos.x >= cornerX &&
-        mPos.x < cornerX + (NODE_WIDTH+1)*CHAR_WIDTH &&
+        mPos.x < cornerX + (NUM.NODE_WIDTH+1)*NUM.CHAR_WIDTH &&
         mPos.y >= cornerY &&
-        mPos.y < cornerY + NODE_HEIGHT*LINE_HEIGHT
+        mPos.y < cornerY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT
       ){ // Collision detection
         this.select.nodeI = i;
         // Huzzah for object references
@@ -157,18 +157,18 @@ class NodeContainer{
     }
   }
   _nodeTopLeft(nodeI){
-    let cornerX = this.nodes[nodeI].codeBox.x + CHAR_GAP;
-    let cornerY = this.nodes[nodeI].codeBox.y + 2*CHAR_GAP +
-      this.nodes[nodeI].codeBox.offsetY - Math.floor(CHAR_GAP/2);
+    let cornerX = this.nodes[nodeI].codeBox.x + NUM.CHAR_GAP;
+    let cornerY = this.nodes[nodeI].codeBox.y + 2*NUM.CHAR_GAP +
+      this.nodes[nodeI].codeBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
     return [cornerX, cornerY];
   }
   _cursorToMouse(nodeI, mPos, cornerX, cornerY){
     this.cursor.lineI = Math.max(0, Math.min(
       this.nodes[nodeI].codeBox.lines.strCount()-1,
-      Math.floor((mPos.y-cornerY)/LINE_HEIGHT)));
+      Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
     this.cursor.charI = Math.max(0, Math.min(
       this.nodes[nodeI].codeBox.lines.strLen(this.cursor.lineI),
-      Math.floor((mPos.x-cornerX)/CHAR_WIDTH)));
+      Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
   }
 
   addChar(char){
@@ -177,10 +177,10 @@ class NodeContainer{
     if(!this.select.range.isNull){
       let afterDel = this._delSelectionInfo();
       if(afterDel === null) return;
-      if(afterDel.lowerLineLen + 1 > NODE_WIDTH) return;
+      if(afterDel.lowerLineLen + 1 > NUM.NODE_WIDTH) return;
 
       this.delSelection();
-    }else if(this.nodeLines.strLen(this.cursor.lineI) >= NODE_WIDTH){
+    }else if(this.nodeLines.strLen(this.cursor.lineI) >= NUM.NODE_WIDTH){
       return;
     }
 
@@ -192,10 +192,10 @@ class NodeContainer{
       let afterDel = this._delSelectionInfo();
 
       if(afterDel === null) return;
-      if(afterDel.lineCount >= NODE_HEIGHT) return;
+      if(afterDel.lineCount >= NUM.NODE_HEIGHT) return;
 
       this.delSelection();
-    }else if(this.nodeLines.strCount() >= NODE_HEIGHT){
+    }else if(this.nodeLines.strCount() >= NUM.NODE_HEIGHT){
       return;
     }
 
@@ -222,7 +222,7 @@ class NodeContainer{
       if(
         this.nodeLines.strLen(this.cursor.lineI-1) +
         this.nodeLines.strLen(this.cursor.lineI) <=
-        NODE_WIDTH
+        NUM.NODE_WIDTH
       ){
         this.cursor.lineI -= 1;
         this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
@@ -245,7 +245,7 @@ class NodeContainer{
       if(
         this.nodeLines.strLen(this.cursor.lineI) +
         this.nodeLines.strLen(this.cursor.lineI+1) <=
-        NODE_WIDTH
+        NUM.NODE_WIDTH
       ){
         let combinedStr =
           this.nodeLines.strGet(this.cursor.lineI) +
@@ -281,7 +281,7 @@ class NodeContainer{
       this.select.range.lowerCharI +
       this.nodeLines.strLen(this.select.range.upperLineI) -
       this.select.range.upperCharI;
-    if(newLowerLineLen > NODE_WIDTH) return null;
+    if(newLowerLineLen > NUM.NODE_WIDTH) return null;
 
     let newLineCount = this.nodeLines.strCount() -
       this.select.range.upperLineI + this.select.range.lowerLineI;
@@ -383,7 +383,7 @@ class NodeContainer{
     let newCursorLineI = pastedLines.length-1; // Appended to later
     let newCursorCharI = null; // Set later
     if(this.select.range.isNull){
-      if(this.nodeLines.strCount() + pastedLines.length-1 > NODE_HEIGHT)
+      if(this.nodeLines.strCount() + pastedLines.length-1 > NUM.NODE_HEIGHT)
         return;
 
       pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI).substr(
@@ -396,13 +396,13 @@ class NodeContainer{
         this.cursor.lineI).substr(this.cursor.charI);
 
       for(let pastedLine of pastedLines){
-        if(pastedLine.length > NODE_WIDTH) return;
+        if(pastedLine.length > NUM.NODE_WIDTH) return;
       }
     }else{
       let afterDel = this._delSelectionInfo();
 
       if(afterDel === null) return;
-      if(afterDel.lineCount + pastedLines.length-1 > NODE_HEIGHT) return;
+      if(afterDel.lineCount + pastedLines.length-1 > NUM.NODE_HEIGHT) return;
 
       pastedLines[0] = this.nodeLines.strGet(
         this.select.range.lowerLineI).substr(
@@ -416,7 +416,7 @@ class NodeContainer{
         this.select.range.upperCharI);
 
       for(let pastedLine of pastedLines){
-        if(pastedLine.length > NODE_WIDTH) return;
+        if(pastedLine.length > NUM.NODE_WIDTH) return;
       }
 
       this.delSelection();

@@ -2,7 +2,7 @@
 (function(){
 
 ctx.strokeStyle = COLOR.WHITE;
-ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
+ctx.font = Math.floor(NUM.CHAR_HEIGHT/3*4) + "pt tis-100-copy";
 
 let allNodes = new NodeContainer([
   [1, 1, 2, 0],
@@ -117,14 +117,14 @@ window.addEventListener("paste", function(evt){
   allNodes.attemptPaste(pastedStr);
 });
 
-for(let i=0; i<NODE_HEIGHT-1; i++)
+for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
   allNodes.nodes[0].codeBox.lines.strSet(i, "testing " + i);
-allNodes.nodes[0].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght right");
+allNodes.nodes[0].codeBox.lines.strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 
-for(let i=0; i<NODE_HEIGHT-1; i++)
-  allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NODE_HEIGHT-1));
-allNodes.nodes[1].codeBox.lines.strSet(NODE_HEIGHT-1, "1: mov r#ght right");
-allNodes.nodes[1].codeBox.activeLine = NODE_HEIGHT-1;
+for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
+  allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NUM.NODE_HEIGHT-1));
+allNodes.nodes[1].codeBox.lines.strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+allNodes.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
 
 allNodes.nodes[2].memoryBox.lines.strSet(0, "254");
 allNodes.nodes[2].memoryBox.lines.strSet(1, "498");
@@ -138,9 +138,9 @@ function gameLoop() {
 
   ctx.fillStyle = COLOR.WHITE;
   ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
-  ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
-  ctx.fillText("!\"#$%&'()*+,-./:;", 10, 22+LINE_HEIGHT*2);
-  ctx.fillText("<=>?@[\\]_`{|}~", 10, 22+LINE_HEIGHT*3);
+  ctx.fillText("1234567890", 10, 22+NUM.LINE_HEIGHT);
+  ctx.fillText("!\"#$%&'()*+,-./:;", 10, 22+NUM.LINE_HEIGHT*2);
+  ctx.fillText("<=>?@[\\]_`{|}~", 10, 22+NUM.LINE_HEIGHT*3);
 
   allNodes.drawNodes();
 
