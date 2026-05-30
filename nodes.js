@@ -1,16 +1,24 @@
 "use strict";
 
+class baseNode{
+  constructor({nodeType}){
+    this.nodeType = nodeType;
+  }
+}
+
 // Red "Communication Error" node (no functionality)
-class CorruptNode{
+class CorruptNode extends baseNode{
   constructor(x, y, sizeInit){
-    this.nodeType = 0;
+    super({
+      nodeType: 0,
+    });
 
     this.descBox = new BoxText({
       x: x+2,
       y: y+2,
       lineW: sizeInit.lineW,
       maxLines: sizeInit.maxLines,
-      centered: true
+      isTextCentered: true,
     });
 
     this.descBox.lines.strSet(4, "COMMUNICATION");
@@ -43,21 +51,21 @@ class CorruptNode{
       y: y,
       w: sideW,
       h: sideH + expandCalc(1, false),
-      borderW: 3
+      borderW: 3,
     });
     this.sideBox2 = new Box({
       x: sideX,
       y: y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
       w: sideW,
       h: sideH + expandCalc(2, false),
-      borderW: 3
+      borderW: 3,
     });
     this.sideBox3 = new Box({
       x: sideX,
       y: y + this.sideBox1.h,
       w: sideW,
       h: sideH + expandCalc(3, false),
-      borderW: 3
+      borderW: 3,
     });
 
     this.nodeBox = new Box({
@@ -65,7 +73,7 @@ class CorruptNode{
       y: y,
       w: this.descBox.w + sizeInit.sideWPx + 6,
       h: this.descBox.h + 4,
-      borderW: 3
+      borderW: 3,
     });
   }
 
@@ -85,15 +93,17 @@ class CorruptNode{
 }
 
 // Node within which user can write code
-class ComputeNode{
+class ComputeNode extends baseNode{
   constructor(x, y, sizeInit){
-    this.nodeType = 1;
+    super({
+      nodeType: 1,
+    });
 
     this.codeBox = new BoxCode({
       x: x+2,
       y: y+2,
       lineW: sizeInit.lineW,
-      maxLines: sizeInit.maxLines
+      maxLines: sizeInit.maxLines,
     });
 
     // Expand the five info boxes next to the codeBox to match its height
@@ -116,7 +126,7 @@ class ComputeNode{
       lineW: sizeInit.sideW,
       maxLines: 2,
       extraH: expandCalc(0),
-      centered: true
+      isTextCentered: true,
     });
     this.ACC = 0;
     this.accBox.lines.strSet(0, "ACC");
@@ -128,7 +138,7 @@ class ComputeNode{
       lineW: sizeInit.sideW,
       maxLines: 2,
       extraH: expandCalc(1),
-      centered: true
+      isTextCentered: true,
     });
     this.BAK = 0;
     this.bakBox.lines.strSet(0, "BAK");
@@ -140,7 +150,7 @@ class ComputeNode{
       lineW: sizeInit.sideW,
       maxLines: 2,
       extraH: expandCalc(2),
-      centered: true
+      isTextCentered: true,
     });
     this.LAST = null;
     this.lastBox.lines.strSet(0, "LAST");
@@ -152,7 +162,7 @@ class ComputeNode{
       lineW: sizeInit.sideW,
       maxLines: 2,
       extraH: expandCalc(3),
-      centered: true
+      isTextCentered: true,
     });
     this.MODE = "IDLE";
     this.modeBox.lines.strSet(0, "MODE");
@@ -164,7 +174,7 @@ class ComputeNode{
       lineW: sizeInit.sideW,
       maxLines: 2,
       extraH: expandCalc(4),
-      centered: true
+      isTextCentered: true,
     });
     this.IDLE = 0;
     this.idleBox.lines.strSet(0, "IDLE");
@@ -172,8 +182,8 @@ class ComputeNode{
     this.nodeBox = new Box({
       x: x,
       y: y,
-      w: this.codeBox.w+sizeInit.sideWPx + 6,
-      h: this.codeBox.h + 4
+      w: this.codeBox.w + sizeInit.sideWPx + 6,
+      h: this.codeBox.h + 4,
     });
   }
 
@@ -202,8 +212,8 @@ class ComputeNode{
     // Draws the LAST box
     this.lastBox.drawBox(COLOR.LIGHT_GRAY);
     this.lastBox.drawLine(COLOR.TEXT.DARKER, 0);
-    this.lastBox.lines.strSet(
-      1, this.LAST !== null ? this.LAST.toString() : "N/A");
+    this.lastBox.lines.strSet(1,
+      this.LAST !== null ? this.LAST.toString() : "N/A");
     this.lastBox.drawLine(COLOR.LIGHT_GRAY, 1);
 
     // Draws the MODE box
@@ -230,16 +240,18 @@ class ComputeNode{
 }
 
 // Node which stores retrievable values given to it
-class StackMemNode{
+class StackMemNode extends baseNode{
   constructor(x, y, sizeInit){
-    this.nodeType = 2;
+    super({
+      nodeType: 2,
+    });
 
     this.descBox = new BoxText({
       x: x+2,
       y: y+2,
       lineW: sizeInit.lineW,
       maxLines: sizeInit.maxLines,
-      centered: true
+      isTextCentered: true,
     });
     this.descBox.lines.strSet(7, "STACK MEMORY NODE");
 
@@ -248,14 +260,14 @@ class StackMemNode{
       y: y+2,
       lineW: sizeInit.sideW,
       maxLines: sizeInit.maxLines,
-      centered: true
+      isTextCentered: true,
     });
 
     this.nodeBox = new Box({
       x: x,
       y: y,
       w: this.descBox.w + sizeInit.sideWPx + 6,
-      h: this.descBox.h + 4
+      h: this.descBox.h + 4,
     });
   }
 

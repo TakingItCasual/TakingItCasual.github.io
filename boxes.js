@@ -75,19 +75,20 @@ class StringList{
 // Can draw text and bars, dimensions set relative to font dimensions
 class BoxText extends Box{
   constructor({
-    x, y, lineW, maxLines, extraH=0, centered=false, borderW=1
+    x, y, lineW, maxLines, extraH=0, isTextCentered=false, borderW=1
   }){
     super({
       x: x,
       y: y,
       w: lineW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
       h: maxLines*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
-      borderW: borderW
+      borderW: borderW,
     });
     this.lineW = lineW; // Width of the box in terms of characters
     this.maxLines = maxLines; // Maximum number of string lines
     this.offsetY = Math.floor(extraH/2); // Y-padding for text lines (px)
-    this.centered = centered; // If true, center text within box's width
+    /** If true, text is centered within box's width */
+    this.isTextCentered = isTextCentered;
 
     this.lines = new StringList(this.lineW, this.maxLines);
   }
@@ -95,7 +96,7 @@ class BoxText extends Box{
   // Draws text from lineString to the canvas (extraY used for "FAILURE")
   drawLine(color, lineI, extraY=0){
     let offsetX = 0;
-    if(this.centered){ // Centers text within box's width
+    if(this.isTextCentered){
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
     }
     ctx.fillStyle = color;
@@ -108,7 +109,7 @@ class BoxText extends Box{
   // Used to draw those solid color boxes (and bars)
   drawBar(barColor, lineI, startChar, endChar, extraStart=0, extraEnd=0){
     let offsetX = 0;
-    if(this.centered){ // Centers text within box's width
+    if(this.isTextCentered){
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
     }
     ctx.fillStyle = barColor;
@@ -129,7 +130,7 @@ class BoxCode extends BoxText{
       x: x,
       y: y,
       lineW: lineW,
-      maxLines: maxLines
+      maxLines: maxLines,
     });
     this.activeLine = null; // Indicates currently executing line
     this.executable = true; // True if the current line was just reached

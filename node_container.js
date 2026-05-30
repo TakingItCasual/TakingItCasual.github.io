@@ -42,7 +42,7 @@ class Selection{
           this.start.charI === this.current.charI
         ) return true;
         return false;
-      }
+      },
     }; // Selection range
     this.cursorBlink = Date.now();
   }
@@ -77,9 +77,9 @@ class NodeContainer{
 
     let sizeInit = {
       lineW: NUM.NODE_WIDTH+1, // Width of line (chars)
-      maxLines: NUM.NODE_HEIGHT, // Maximum number of lines
+      maxLines: NUM.NODE_HEIGHT, // Maximum number of string lines
       sideW: NUM.ACC_MIN.toString().length+1, // Width of side boxes (chars)
-      sideWPx: 0 // Width of side boxes (px)
+      sideWPx: 0, // Width of side boxes (px)
     };
     sizeInit.sideWPx = sizeInit.sideW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2;
 
@@ -106,7 +106,7 @@ class NodeContainer{
 
     return {
       lineI: this.cursor.lineI,
-      charI: this.cursor.charI
+      charI: this.cursor.charI,
     };
   }
   compareCursors(prevCursor){
@@ -287,7 +287,7 @@ class NodeContainer{
       this.select.range.upperLineI + this.select.range.lowerLineI;
     return {
       lowerLineLen: newLowerLineLen,
-      lineCount: newLineCount
+      lineCount: newLineCount,
     };
   }
 
@@ -303,12 +303,8 @@ class NodeContainer{
     }else if(keyCode === 1){ // Up
       if(this.cursor.lineI > 0){
         this.cursor.lineI -= 1;
-        if(
-          this.cursor.charI >
-          this.nodeLines.strLen(this.cursor.lineI)
-        ){
-          this.cursor.charI =
-            this.nodeLines.strLen(this.cursor.lineI);
+        if(this.cursor.charI > this.nodeLines.strLen(this.cursor.lineI)){
+          this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
         }
       }else{
         this.cursor.charI = 0;

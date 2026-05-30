@@ -11,11 +11,15 @@ const NUM = Object.freeze({
   get ACC_MIN(){
     return -this.ACC_MAX;
   },
-  /** Height of the ASCII characters (must be multiple of 9) */
-  CHAR_HEIGHT: 9,
-  /** Characters' width (monospacing used, mostly up to 7, but a few have 8) */
+  /** Multiplier for ASCII character dimensions */
+  _CHAR_DIM_MULTI: 1,
+  /** Height of ASCII characters */
+  get CHAR_HEIGHT(){
+    return this._CHAR_DIM_MULTI * 9;
+  },
+  /** Width of ASCII characters (monospacing used, w:h ratio is 8:9) */
   get CHAR_WIDTH(){
-    return Math.floor(this.CHAR_HEIGHT/9 * 8);
+    return this._CHAR_DIM_MULTI * 8;
   },
   /** Pixel gap between lines and from sides (minimum of 2) */
   CHAR_GAP: 3,
