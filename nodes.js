@@ -70,17 +70,17 @@ class CorruptNode{
   }
 
   drawNode(){
-    this.nodeBox.drawBox(DARK_RED);
+    this.nodeBox.drawBox(COLOR.DARK_RED);
 
-    this.descBox.drawBox(DARK_RED);
-    this.descBox.drawBar(2, 0, this.descBox.lines.strLen(4), LIGHT_RED);
-    this.descBox.drawLine(4, DARK_RED);
-    this.descBox.drawLine(5, DARK_RED, 2);
-    this.descBox.drawBar(7, 0, this.descBox.lines.strLen(4), LIGHT_RED);
+    this.descBox.drawBox(COLOR.DARK_RED);
+    this.descBox.drawBar(2, 0, this.descBox.lines.strLen(4), COLOR.LIGHT_RED);
+    this.descBox.drawLine(4, COLOR.DARK_RED);
+    this.descBox.drawLine(5, COLOR.DARK_RED, 2);
+    this.descBox.drawBar(7, 0, this.descBox.lines.strLen(4), COLOR.LIGHT_RED);
 
-    this.sideBox1.drawBox(DARK_RED);
-    this.sideBox2.drawBox(DARK_RED);
-    this.sideBox3.drawBox(DARK_RED);
+    this.sideBox1.drawBox(COLOR.DARK_RED);
+    this.sideBox2.drawBox(COLOR.DARK_RED);
+    this.sideBox3.drawBox(COLOR.DARK_RED);
   }
 }
 
@@ -178,49 +178,49 @@ class ComputeNode{
   }
 
   drawNode(select){
-    this.nodeBox.drawBox(DIM_WHITE);
+    this.nodeBox.drawBox(COLOR.DIM_WHITE);
 
     // Draws the editable codeBox and all relevant bars
-    this.codeBox.drawBox(DIM_WHITE);
+    this.codeBox.drawBox(COLOR.DIM_WHITE);
     this.codeBox.drawAllLinesAndBars(select);
 
     // Draws the ACC box
-    this.accBox.drawBox(DIM_WHITE);
-    this.accBox.drawLine(0, INFO_GRAY);
+    this.accBox.drawBox(COLOR.DIM_WHITE);
+    this.accBox.drawLine(0, COLOR.INFO_GRAY);
     this.accBox.lines.strSet(1, this.ACC.toString());
-    this.accBox.drawLine(1, DIM_WHITE);
+    this.accBox.drawLine(1, COLOR.DIM_WHITE);
 
     // Draws the BAK box
-    this.bakBox.drawBox(DIM_WHITE);
-    this.bakBox.drawLine(0, INFO_GRAY);
+    this.bakBox.drawBox(COLOR.DIM_WHITE);
+    this.bakBox.drawLine(0, COLOR.INFO_GRAY);
     if(this.BAK.toString().length + 2 <= this.bakBox.lineW){
       this.bakBox.lines.strSet(1, "(" + this.BAK.toString() + ")");
     }else{
       this.bakBox.lines.strSet(1, this.BAK.toString());
     }
-    this.bakBox.drawLine(1, DIM_WHITE);
+    this.bakBox.drawLine(1, COLOR.DIM_WHITE);
 
     // Draws the LAST box
-    this.lastBox.drawBox(DIM_WHITE);
-    this.lastBox.drawLine(0, INFO_GRAY);
+    this.lastBox.drawBox(COLOR.DIM_WHITE);
+    this.lastBox.drawLine(0, COLOR.INFO_GRAY);
     if(this.LAST !== null){
       this.lastBox.lines.strSet(1, this.LAST.toString());
     }else{
       this.lastBox.lines.strSet(1, "N/A");
     }
-    this.lastBox.drawLine(1, DIM_WHITE);
+    this.lastBox.drawLine(1, COLOR.DIM_WHITE);
 
     // Draws the MODE box
-    this.modeBox.drawBox(DIM_WHITE);
-    this.modeBox.drawLine(0, INFO_GRAY);
+    this.modeBox.drawBox(COLOR.DIM_WHITE);
+    this.modeBox.drawLine(0, COLOR.INFO_GRAY);
     this.modeBox.lines.strSet(1, this.MODE.toString());
-    this.modeBox.drawLine(1, DIM_WHITE);
+    this.modeBox.drawLine(1, COLOR.DIM_WHITE);
 
     // Draws the IDLE box
-    this.idleBox.drawBox(DIM_WHITE);
-    this.idleBox.drawLine(0, INFO_GRAY);
+    this.idleBox.drawBox(COLOR.DIM_WHITE);
+    this.idleBox.drawLine(0, COLOR.INFO_GRAY);
     this.idleBox.lines.strSet(1, this.IDLE.toString() + "%");
-    this.idleBox.drawLine(1, DIM_WHITE);
+    this.idleBox.drawLine(1, COLOR.DIM_WHITE);
   }
 
   haltExecution(){
@@ -264,20 +264,20 @@ class StackMemNode{
   }
 
   drawNode(){
-    this.nodeBox.drawBox(DIM_WHITE);
+    this.nodeBox.drawBox(COLOR.DIM_WHITE);
 
     // Draws the description box ("STACK MEMORY NODE")
-    this.descBox.drawBox(DIM_WHITE);
-    this.descBox.drawBar(5, 0, this.descBox.lines.strLen(7), WHITE);
-    this.descBox.drawLine(7, DIM_WHITE);
-    this.descBox.drawBar(9, 0, this.descBox.lines.strLen(7), WHITE);
+    this.descBox.drawBox(COLOR.DIM_WHITE);
+    this.descBox.drawBar(5, 0, this.descBox.lines.strLen(7), COLOR.WHITE);
+    this.descBox.drawLine(7, COLOR.DIM_WHITE);
+    this.descBox.drawBar(9, 0, this.descBox.lines.strLen(7), COLOR.WHITE);
 
-    this.memoryBox.drawBox(DIM_WHITE);
+    this.memoryBox.drawBox(COLOR.DIM_WHITE);
     // Prints out each value in memory
     for(let i=0; i<NODE_HEIGHT; i++){
       // There shouldn't be any lower ones if the current line is empty
       if(!this.memoryBox.lines.strGet(i)) break;
-      this.memoryBox.drawLine(i, DIM_WHITE);
+      this.memoryBox.drawLine(i, COLOR.DIM_WHITE);
     }
   }
 }

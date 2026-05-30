@@ -1,7 +1,7 @@
 "use strict";
 (function(){
 
-ctx.strokeStyle = WHITE;
+ctx.strokeStyle = COLOR.WHITE;
 ctx.font = CHAR_HEIGHT/3*4 + "pt tis-100-copy";
 
 let allNodes = new NodeContainer([
@@ -133,10 +133,10 @@ allNodes.nodes[2].memoryBox.lines.strSet(2, "782");
 function gameLoop() {
 
   ctx.beginPath();
-  ctx.fillStyle = BLACK;
+  ctx.fillStyle = COLOR.BLACK;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = WHITE;
+  ctx.fillStyle = COLOR.WHITE;
   ctx.fillText("ThE qUiCk BrOwN fOx JuMpS oVeR tHe LaZy DoG.", 10, 22);
   ctx.fillText("1234567890", 10, 22+LINE_HEIGHT);
   ctx.fillText("!\"#$%&'()*+,-./:;", 10, 22+LINE_HEIGHT*2);

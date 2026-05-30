@@ -140,9 +140,9 @@ class BoxCode extends BoxText{
     // Draws bar under currently executing line
     if(this.activeLine !== null){
       if(this.executable)
-        ctx.fillStyle = ACTIVE_EXEC;
+        ctx.fillStyle = COLOR.ACTIVE_EXEC;
       else
-        ctx.fillStyle = WAIT_EXEC;
+        ctx.fillStyle = COLOR.WAIT_EXEC;
       this.drawBar(
         this.activeLine, 0, this.lineW, ctx.fillStyle, CHAR_GAP, CHAR_GAP-2
       );
@@ -166,14 +166,14 @@ class BoxCode extends BoxText{
         else
           selectEnd = select.range.upperCharI;
 
-        this.drawBar(i, selectStart, selectEnd, SELECT_GRAY);
+        this.drawBar(i, selectStart, selectEnd, COLOR.SELECT_GRAY);
       }
 
       let commentStart = this.lines.strGet(i).indexOf("#");
       if(this.activeLine === i){
-        this.drawLine(i, BLACK);
+        this.drawLine(i, COLOR.BLACK);
       }else if(commentStart === -1 && selectStart === -1){
-        this.drawLine(i, DIM_WHITE);
+        this.drawLine(i, COLOR.DIM_WHITE);
       }else{
         this.drawSplitLine(i, commentStart, selectStart, selectEnd);
       }
@@ -185,7 +185,7 @@ class BoxCode extends BoxText{
       if(blinkTime < 400){ // Blink every 0.8s
         this.drawBar(
           select.cursor.lineI, select.cursor.charI,
-          select.cursor.charI+1, CURSOR_WHITE
+          select.cursor.charI+1, COLOR.CURSOR_WHITE
         );
       }
     }
@@ -195,30 +195,30 @@ class BoxCode extends BoxText{
     let strParts = []; // List of lists of string indexes and colors
 
     if(Math.max(commentStart, selectStart) > 0)
-      strParts.push([0, DIM_WHITE]);
+      strParts.push([0, COLOR.DIM_WHITE]);
     if(commentStart !== -1 && selectStart === -1){
-      strParts.push([commentStart, COMMENT_GRAY]);
+      strParts.push([commentStart, COLOR.COMMENT_GRAY]);
     }else if(commentStart === -1 && selectStart !== -1){
-      strParts.push([selectStart, WHITE]);
+      strParts.push([selectStart, COLOR.WHITE]);
       if(selectEnd < this.lines.strLen(lineI))
-        strParts.push([selectEnd, DIM_WHITE]);
+        strParts.push([selectEnd, COLOR.DIM_WHITE]);
     }else{
       if(commentStart <= selectStart){
         if(commentStart < selectStart)
-          strParts.push([commentStart, COMMENT_GRAY]);
-        strParts.push([selectStart, DIM_WHITE]);
+          strParts.push([commentStart, COLOR.COMMENT_GRAY]);
+        strParts.push([selectStart, COLOR.DIM_WHITE]);
         if(selectEnd < this.lines.strLen(lineI))
-          strParts.push([selectEnd, COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.COMMENT_GRAY]);
       }else if(selectStart < commentStart && commentStart < selectEnd){
-        strParts.push([selectStart, WHITE]);
-        strParts.push([commentStart, DIM_WHITE]);
+        strParts.push([selectStart, COLOR.WHITE]);
+        strParts.push([commentStart, COLOR.DIM_WHITE]);
         if(selectEnd < this.lines.strLen(lineI))
-          strParts.push([selectEnd, COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.COMMENT_GRAY]);
       }else if(commentStart >= selectEnd){
-        strParts.push([selectStart, WHITE]);
+        strParts.push([selectStart, COLOR.WHITE]);
         if(commentStart > selectEnd)
-          strParts.push([selectEnd, DIM_WHITE]);
-        strParts.push([commentStart, COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.DIM_WHITE]);
+        strParts.push([commentStart, COLOR.COMMENT_GRAY]);
       }
     }
 
