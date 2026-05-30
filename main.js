@@ -125,6 +125,7 @@ for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
   allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NUM.NODE_HEIGHT-1));
 allNodes.nodes[1].codeBox.lines.strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 allNodes.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
+allNodes.nodes[1].BAK = -999;
 
 allNodes.nodes[2].memoryBox.lines.strSet(0, "254");
 allNodes.nodes[2].memoryBox.lines.strSet(1, "498");

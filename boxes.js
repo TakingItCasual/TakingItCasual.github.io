@@ -93,7 +93,7 @@ class BoxText extends Box{
   }
 
   // Draws text from lineString to the canvas (extraY used for "FAILURE")
-  drawLine(lineI, color=ctx.fillStyle, extraY=0){
+  drawLine(color, lineI, extraY=0){
     let offsetX = 0;
     if(this.centered){ // Centers text within box's width
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
@@ -106,7 +106,7 @@ class BoxText extends Box{
     );
   }
   // Used to draw those solid color boxes (and bars)
-  drawBar(lineI, startChar, endChar, barColor, extraStart=0, extraEnd=0){
+  drawBar(barColor, lineI, startChar, endChar, extraStart=0, extraEnd=0){
     let offsetX = 0;
     if(this.centered){ // Centers text within box's width
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
@@ -139,13 +139,9 @@ class BoxCode extends BoxText{
   drawAllLinesAndBars(select){
     // Draws bar under currently executing line
     if(this.activeLine !== null){
-      if(this.executable)
-        ctx.fillStyle = COLOR.ACTIVE_EXEC;
-      else
-        ctx.fillStyle = COLOR.WAIT_EXEC;
       this.drawBar(
-        this.activeLine, 0, this.lineW, ctx.fillStyle,
-        NUM.CHAR_GAP, NUM.CHAR_GAP-2
+        (this.executable ? COLOR.BAR.RUNNING : COLOR.BAR.WAITING),
+        this.activeLine, 0, this.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-2
       );
     }
 
@@ -157,24 +153,19 @@ class BoxCode extends BoxText{
       let selectEnd = -1;
       // Draws bar under selected text
       if(select !== null && select.lineSelected(i)){
-        if(select.range.lowerLineI < i)
-          selectStart = 0;
-        else
-          selectStart = select.range.lowerCharI;
+        selectStart = select.range.lowerLineI >= i ?
+          select.range.lowerCharI : 0;
+        selectEnd = select.range.upperLineI <= i ?
+          select.range.upperCharI : this.lines.strLen(i);
 
-        if(select.range.upperLineI > i)
-          selectEnd = this.lines.strLen(i);
-        else
-          selectEnd = select.range.upperCharI;
-
-        this.drawBar(i, selectStart, selectEnd, COLOR.SELECT_GRAY);
+        this.drawBar(COLOR.BAR.SELECTED, i, selectStart, selectEnd);
       }
 
       let commentStart = this.lines.strGet(i).indexOf("#");
       if(this.activeLine === i){
-        this.drawLine(i, COLOR.BLACK);
+        this.drawLine(COLOR.BLACK, i);
       }else if(commentStart === -1 && selectStart === -1){
-        this.drawLine(i, COLOR.DIM_WHITE);
+        this.drawLine(COLOR.LIGHT_GRAY, i);
       }else{
         this.drawSplitLine(i, commentStart, selectStart, selectEnd);
       }
@@ -184,10 +175,8 @@ class BoxCode extends BoxText{
     if(select !== null){
       let blinkTime = (Date.now() - select.cursorBlink) % 800;
       if(blinkTime < 400){ // Blink every 0.8s
-        this.drawBar(
-          select.cursor.lineI, select.cursor.charI,
-          select.cursor.charI+1, COLOR.CURSOR_WHITE
-        );
+        this.drawBar(COLOR.BAR.CURSOR,
+          select.cursor.lineI, select.cursor.charI, select.cursor.charI+1);
       }
     }
   }
@@ -196,30 +185,30 @@ class BoxCode extends BoxText{
     let strParts = []; // List of lists of string indexes and colors
 
     if(Math.max(commentStart, selectStart) > 0)
-      strParts.push([0, COLOR.DIM_WHITE]);
+      strParts.push([0, COLOR.LIGHT_GRAY]);
     if(commentStart !== -1 && selectStart === -1){
-      strParts.push([commentStart, COLOR.COMMENT_GRAY]);
+      strParts.push([commentStart, COLOR.TEXT.COMMENT]);
     }else if(commentStart === -1 && selectStart !== -1){
       strParts.push([selectStart, COLOR.WHITE]);
       if(selectEnd < this.lines.strLen(lineI))
-        strParts.push([selectEnd, COLOR.DIM_WHITE]);
+        strParts.push([selectEnd, COLOR.LIGHT_GRAY]);
     }else{
       if(commentStart <= selectStart){
         if(commentStart < selectStart)
-          strParts.push([commentStart, COLOR.COMMENT_GRAY]);
-        strParts.push([selectStart, COLOR.DIM_WHITE]);
+          strParts.push([commentStart, COLOR.TEXT.COMMENT]);
+        strParts.push([selectStart, COLOR.LIGHT_GRAY]);
         if(selectEnd < this.lines.strLen(lineI))
-          strParts.push([selectEnd, COLOR.COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.TEXT.COMMENT]);
       }else if(selectStart < commentStart && commentStart < selectEnd){
         strParts.push([selectStart, COLOR.WHITE]);
-        strParts.push([commentStart, COLOR.DIM_WHITE]);
+        strParts.push([commentStart, COLOR.LIGHT_GRAY]);
         if(selectEnd < this.lines.strLen(lineI))
-          strParts.push([selectEnd, COLOR.COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.TEXT.COMMENT]);
       }else if(commentStart >= selectEnd){
         strParts.push([selectStart, COLOR.WHITE]);
         if(commentStart > selectEnd)
-          strParts.push([selectEnd, COLOR.DIM_WHITE]);
-        strParts.push([commentStart, COLOR.COMMENT_GRAY]);
+          strParts.push([selectEnd, COLOR.LIGHT_GRAY]);
+        strParts.push([commentStart, COLOR.TEXT.COMMENT]);
       }
     }
 

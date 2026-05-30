@@ -70,17 +70,17 @@ class CorruptNode{
   }
 
   drawNode(){
-    this.nodeBox.drawBox(COLOR.DARK_RED);
+    this.nodeBox.drawBox(COLOR.CORRUPT_RED);
 
-    this.descBox.drawBox(COLOR.DARK_RED);
-    this.descBox.drawBar(2, 0, this.descBox.lines.strLen(4), COLOR.LIGHT_RED);
-    this.descBox.drawLine(4, COLOR.DARK_RED);
-    this.descBox.drawLine(5, COLOR.DARK_RED, 2);
-    this.descBox.drawBar(7, 0, this.descBox.lines.strLen(4), COLOR.LIGHT_RED);
+    this.descBox.drawBox(COLOR.CORRUPT_RED);
+    this.descBox.drawBar(COLOR.CORRUPT_RED, 2, 0, this.descBox.lines.strLen(4));
+    this.descBox.drawLine(COLOR.CORRUPT_RED, 4);
+    this.descBox.drawLine(COLOR.CORRUPT_RED, 5, 2);
+    this.descBox.drawBar(COLOR.CORRUPT_RED, 7, 0, this.descBox.lines.strLen(4));
 
-    this.sideBox1.drawBox(COLOR.DARK_RED);
-    this.sideBox2.drawBox(COLOR.DARK_RED);
-    this.sideBox3.drawBox(COLOR.DARK_RED);
+    this.sideBox1.drawBox(COLOR.CORRUPT_RED);
+    this.sideBox2.drawBox(COLOR.CORRUPT_RED);
+    this.sideBox3.drawBox(COLOR.CORRUPT_RED);
   }
 }
 
@@ -178,49 +178,45 @@ class ComputeNode{
   }
 
   drawNode(select){
-    this.nodeBox.drawBox(COLOR.DIM_WHITE);
+    this.nodeBox.drawBox(COLOR.LIGHT_GRAY);
 
     // Draws the editable codeBox and all relevant bars
-    this.codeBox.drawBox(COLOR.DIM_WHITE);
+    this.codeBox.drawBox(COLOR.LIGHT_GRAY);
     this.codeBox.drawAllLinesAndBars(select);
 
     // Draws the ACC box
-    this.accBox.drawBox(COLOR.DIM_WHITE);
-    this.accBox.drawLine(0, COLOR.INFO_GRAY);
+    this.accBox.drawBox(COLOR.LIGHT_GRAY);
+    this.accBox.drawLine(COLOR.TEXT.DARKER, 0);
     this.accBox.lines.strSet(1, this.ACC.toString());
-    this.accBox.drawLine(1, COLOR.DIM_WHITE);
+    this.accBox.drawLine(COLOR.LIGHT_GRAY, 1);
 
     // Draws the BAK box
-    this.bakBox.drawBox(COLOR.DIM_WHITE);
-    this.bakBox.drawLine(0, COLOR.INFO_GRAY);
-    if(this.BAK.toString().length + 2 <= this.bakBox.lineW){
-      this.bakBox.lines.strSet(1, "(" + this.BAK.toString() + ")");
-    }else{
-      this.bakBox.lines.strSet(1, this.BAK.toString());
-    }
-    this.bakBox.drawLine(1, COLOR.DIM_WHITE);
+    this.bakBox.drawBox(COLOR.LIGHT_GRAY);
+    this.bakBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.bakBox.lines.strSet(1,
+      this.BAK.toString().length + 2 <= this.bakBox.lineW ?
+        "(" + this.BAK.toString() + ")" :
+        this.BAK.toString());
+    this.bakBox.drawLine(COLOR.LIGHT_GRAY, 1);
 
     // Draws the LAST box
-    this.lastBox.drawBox(COLOR.DIM_WHITE);
-    this.lastBox.drawLine(0, COLOR.INFO_GRAY);
-    if(this.LAST !== null){
-      this.lastBox.lines.strSet(1, this.LAST.toString());
-    }else{
-      this.lastBox.lines.strSet(1, "N/A");
-    }
-    this.lastBox.drawLine(1, COLOR.DIM_WHITE);
+    this.lastBox.drawBox(COLOR.LIGHT_GRAY);
+    this.lastBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.lastBox.lines.strSet(
+      1, this.LAST !== null ? this.LAST.toString() : "N/A");
+    this.lastBox.drawLine(COLOR.LIGHT_GRAY, 1);
 
     // Draws the MODE box
-    this.modeBox.drawBox(COLOR.DIM_WHITE);
-    this.modeBox.drawLine(0, COLOR.INFO_GRAY);
+    this.modeBox.drawBox(COLOR.LIGHT_GRAY);
+    this.modeBox.drawLine(COLOR.TEXT.DARKER, 0);
     this.modeBox.lines.strSet(1, this.MODE.toString());
-    this.modeBox.drawLine(1, COLOR.DIM_WHITE);
+    this.modeBox.drawLine(COLOR.LIGHT_GRAY, 1);
 
     // Draws the IDLE box
-    this.idleBox.drawBox(COLOR.DIM_WHITE);
-    this.idleBox.drawLine(0, COLOR.INFO_GRAY);
+    this.idleBox.drawBox(COLOR.LIGHT_GRAY);
+    this.idleBox.drawLine(COLOR.TEXT.DARKER, 0);
     this.idleBox.lines.strSet(1, this.IDLE.toString() + "%");
-    this.idleBox.drawLine(1, COLOR.DIM_WHITE);
+    this.idleBox.drawLine(COLOR.LIGHT_GRAY, 1);
   }
 
   haltExecution(){
@@ -264,20 +260,23 @@ class StackMemNode{
   }
 
   drawNode(){
-    this.nodeBox.drawBox(COLOR.DIM_WHITE);
+    this.nodeBox.drawBox(COLOR.LIGHT_GRAY);
 
     // Draws the description box ("STACK MEMORY NODE")
-    this.descBox.drawBox(COLOR.DIM_WHITE);
-    this.descBox.drawBar(5, 0, this.descBox.lines.strLen(7), COLOR.WHITE);
-    this.descBox.drawLine(7, COLOR.DIM_WHITE);
-    this.descBox.drawBar(9, 0, this.descBox.lines.strLen(7), COLOR.WHITE);
+    this.descBox.drawBox(COLOR.LIGHT_GRAY);
+    this.descBox.drawBar(COLOR.WHITE, 5, 0, this.descBox.lines.strLen(7));
+    this.descBox.drawLine(COLOR.LIGHT_GRAY, 7);
+    this.descBox.drawBar(COLOR.WHITE, 9, 0, this.descBox.lines.strLen(7));
 
-    this.memoryBox.drawBox(COLOR.DIM_WHITE);
+    this.memoryBox.drawBox(COLOR.LIGHT_GRAY);
     // Prints out each value in memory
     for(let i=0; i<NUM.NODE_HEIGHT; i++){
       // There shouldn't be any lower ones if the current line is empty
       if(!this.memoryBox.lines.strGet(i)) break;
-      this.memoryBox.drawLine(i, COLOR.DIM_WHITE);
+      if(!this.memoryBox.lines.strGet(i+1))
+        this.memoryBox.drawBar(COLOR.BAR.MEM_RED,
+          i, 0, this.memoryBox.lineW, 3, 2);
+      this.memoryBox.drawLine(COLOR.LIGHT_GRAY, i);
     }
   }
 }
