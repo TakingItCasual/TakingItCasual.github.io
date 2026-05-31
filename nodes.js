@@ -1,8 +1,22 @@
 "use strict";
 
+/** Template parent class for all node types */
 class _BaseNode{
   constructor({nodeType}){
     this.nodeType = nodeType;
+    this.connections = {
+      "left": null,
+      "up": null,
+      "right": null,
+      "down": null,
+    }
+  }
+
+  drawConnections(){
+    if(this.connections["left"] !== null){}
+    if(this.connections["up"] !== null){}
+    if(this.connections["right"] !== null){}
+    if(this.connections["down"] !== null){}
   }
 }
 
@@ -51,21 +65,21 @@ class CorruptNode extends _BaseNode{
       y: y,
       w: sideW,
       h: sideH + expandCalc(1, false),
-      borderFull: true,
+      isBorderFull: true,
     });
     this.sideBox2 = new Box({
       x: sideX,
       y: y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
       w: sideW,
       h: sideH + expandCalc(2, false),
-      borderFull: true,
+      isBorderFull: true,
     });
     this.sideBox3 = new Box({
       x: sideX,
       y: y + this.sideBox1.h,
       w: sideW,
       h: sideH + expandCalc(3, false),
-      borderFull: true,
+      isBorderFull: true,
     });
 
     this.nodeBox = new Box({
@@ -73,7 +87,7 @@ class CorruptNode extends _BaseNode{
       y: y,
       w: this.descBox.w + sizeInit.sideWPx + 6,
       h: this.descBox.h + 4,
-      borderFull: true,
+      isBorderFull: true,
     });
   }
 

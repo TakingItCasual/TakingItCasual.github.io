@@ -2,18 +2,17 @@
 
 /** Empty box, just has its dimensions and draw method */
 class Box{
-  constructor({x, y, w, h, borderFull=false}){
-    let borderW = borderFull ? 3 : 1;
-    this.x = x + ((borderW-1)/2); // x-pos of box's top left
-    this.y = y + ((borderW-1)/2); // y-pos of box's top left
-    this.w = w - (borderW - 1); // Box's width
-    this.h = h - (borderW - 1); // Box's height
-    this.borderFull = borderFull; // Whether box border is 1px or 3px
+  constructor({x, y, w, h, isBorderFull=false}){
+    this.x = x + (isBorderFull ? 1 : 0); // x-pos of box's top left (px)
+    this.y = y + (isBorderFull ? 1 : 0); // y-pos of box's top left (px)
+    this.w = w - (isBorderFull ? 2 : 0); // Box's width (px)
+    this.h = h - (isBorderFull ? 2 : 0); // Box's height (px)
+    this.isBorderFull = isBorderFull; // Whether box border is 1px or 3px
   }
 
   drawBox(color){
     ctx.strokeStyle = color;
-    ctx.lineWidth = this.borderFull ? 3 : 1;
+    ctx.lineWidth = this.isBorderFull ? 3 : 1;
     ctx.strokeRect(this.x-0.5, this.y-0.5, this.w, this.h);
     ctx.lineWidth = 1;
   }
@@ -22,14 +21,14 @@ class Box{
 /** Can draw text and bars, dimensions set relative to font dimensions */
 class BoxText extends Box{
   constructor({
-    x, y, lineW, maxLines, extraH=0, isTextCentered=false, borderFull=false
+    x, y, lineW, maxLines, extraH=0, isTextCentered=false, isBorderFull=false
   }){
     super({
       x: x,
       y: y,
       w: lineW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
       h: maxLines*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
-      borderFull: borderFull,
+      isBorderFull: isBorderFull,
     });
     this.lineW = lineW; // Width of the box in terms of characters
     this.maxLines = maxLines; // Maximum number of string lines
@@ -81,7 +80,7 @@ class BoxCode extends BoxText{
     this.executable = true; // True if the current line was just reached
   }
 
-  // Draws text, executing line or selected text bars, and the blinking thingy
+  /** Draws text, executing line or selected text bars, and blinking thingy */
   drawAllLinesAndBars(select){
     // Draws bar under currently executing line
     if(this.activeLine !== null){
@@ -98,7 +97,7 @@ class BoxCode extends BoxText{
       let selectStart = -1;
       let selectEnd = -1;
       // Draws bar under selected text
-      if(select !== null && select.lineSelected(i)){
+      if(select !== null && select.range.lineSelected(i)){
         selectStart = select.range.lowerLineI >= i ?
           select.range.lowerCharI : 0;
         selectEnd = select.range.upperLineI <= i ?
@@ -119,14 +118,14 @@ class BoxCode extends BoxText{
 
     // Blinking thingy
     if(select !== null){
-      let blinkTime = (Date.now() - select.cursorBlink) % 800;
+      let blinkTime = (Date.now() - select.cursorBlink.time) % 800;
       if(blinkTime < 400){ // Blink every 0.8s
         this.drawBar(COLOR.BAR.CURSOR,
           select.cursor.lineI, select.cursor.charI, select.cursor.charI+1);
       }
     }
   }
-  // Draws text lines, using seperate coloring for comments/selection
+  /** Draws text lines, using seperate coloring for comments/selection */
   drawSplitLine(lineI, commentStart, selectStart, selectEnd){
     let strParts = []; // List of lists of string indexes and colors
 

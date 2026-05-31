@@ -23,103 +23,99 @@ function getMousePos(canvas, evt) {
 }
 
 let mPos = { x: 0, y: 0 }; // Mouse position
-window.addEventListener("mousemove", function(evt) {
+canvas.addEventListener("mousemove", function(evt) {
   mPos = getMousePos(canvas, evt);
-  if(evt.buttons % 2 === 1) allNodes.mouseDrag(mPos);
+  if(evt.buttons % 2 === 1) allNodes.lmbDrag(mPos);
 });
-window.addEventListener("mousedown", function(evt) {
-  allNodes.lmbDown(mPos);
+canvas.addEventListener("mousedown", function(evt) {
+  if(evt.button === 0){
+    allNodes.lmbDown(mPos);
+  }else if(evt.button === 2){
+    allNodes.rmbDown(mPos, evt.clipboardData);
+  }
 });
 
-window.addEventListener("keypress", function(evt) {
-  if(evt.ctrlKey) return;
-  let prevCursor = allNodes.initCompareCursors();
-
-  // Required for cross-browser compatibility
-  let charCode = (typeof evt.which === "number") ? evt.which : evt.keyCode;
-  let char = String.fromCharCode(charCode).toUpperCase();
-
-  // Prevents Firefox from opening quick find
-  if(["'", "/"].indexOf(char) > -1)
-    evt.preventDefault();
-
-  if(prevCursor === null) return;
-
-  allNodes.addChar(char);
-  allNodes.compareCursors(prevCursor);
-});
-window.addEventListener("keydown", function(evt) {
-  let prevCursor = allNodes.initCompareCursors();
-
+canvas.addEventListener("keydown", function(evt) {
   // Prevent space and arrow keys from causing unwanted scrolling
   // Prevent backspace causing the browser to navigate backwards
-  if([" ", "Backspace", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"
-      ].indexOf(evt.code) > -1){
+  // Prevent ' and / from opening quick find in Firefox
+  if([
+    " ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown",
+    "Backspace",
+    "'", "/"
+  ].indexOf(evt.key) > -1){
     evt.preventDefault();
   }
 
-  if(prevCursor === null) return;
+  if(allNodes.select.nodeI === null) return;
 
-  switch(evt.code){
-    case "Enter":
-      allNodes.newLine();
-      break;
-    case " ":
-      allNodes.addChar(" ");
-      break;
-    case "Backspace":
-      allNodes.bakChar();
-      break;
-    case "Delete":
-      allNodes.delChar();
-      break;
-    case "ArrowLeft":
-      allNodes.arrowKey(0);
-      break;
-    case "ArrowUp":
-      allNodes.arrowKey(1);
-      break;
-    case "ArrowRight":
-      allNodes.arrowKey(2);
-      break;
-    case "ArrowDown":
-      allNodes.arrowKey(3);
-      break;
-    case "Escape":
-      allNodes.select.focusLost();
-      break;
-  }
-
-  if (evt.ctrlKey && evt.code === "KeyA") {
+  if(!evt.ctrlKey){
+    switch(evt.key){
+      case "Enter":
+        allNodes.newLine();
+        break;
+      case "Backspace":
+        allNodes.bakChar();
+        break;
+      case "Delete":
+        allNodes.delChar();
+        break;
+      case "ArrowLeft":
+        allNodes.arrowKey(0);
+        break;
+      case "ArrowUp":
+        allNodes.arrowKey(1);
+        break;
+      case "ArrowRight":
+        allNodes.arrowKey(2);
+        break;
+      case "ArrowDown":
+        allNodes.arrowKey(3);
+        break;
+      case "Escape":
+        allNodes.select.focusLost();
+        break;
+      default:
+        allNodes.addChar(evt.key);
+        break;
+    }
+  }else if(evt.key === "A" || evt.key === "a"){
     allNodes.selectAll();
   }
-
-  allNodes.compareCursors(prevCursor);
 });
-window.addEventListener("blur", function(evt) {
+canvas.addEventListener("blur", function(evt) {
   allNodes.select.focusLost();
 });
 
-window.addEventListener("copy", function(evt){
+// Handle copying/cutting/pasting into code boxes
+canvas.addEventListener("copy", function(evt){
   let copiedStr = allNodes.attemptCopy()
   if(copiedStr !== null)
     evt.clipboardData.setData("text/plain", copiedStr);
 
   evt.preventDefault();
 });
-window.addEventListener("cut", function(evt){
+canvas.addEventListener("cut", function(evt){
   let cutStr = allNodes.attemptCut()
   if(cutStr !== null)
     evt.clipboardData.setData("text/plain", cutStr);
 
   evt.preventDefault();
 });
-window.addEventListener("paste", function(evt){
+canvas.addEventListener("paste", function(evt){
   evt.preventDefault();
   evt.stopPropagation();
 
   let pastedStr = evt.clipboardData.getData("text/plain").toUpperCase();
   allNodes.attemptPaste(pastedStr);
+});
+
+// Disable unwanted behaviors in canvas
+canvas.addEventListener("contextmenu", function(evt) {
+  evt.preventDefault();
+});
+canvas.addEventListener("dragstart", function(evt) {
+  evt.preventDefault();
 });
 
 for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
@@ -137,7 +133,6 @@ allNodes.nodes[2].memoryBox.lines.strSet(1, "498");
 allNodes.nodes[2].memoryBox.lines.strSet(2, "782");
 
 function gameLoop() {
-
   ctx.beginPath();
   ctx.fillStyle = COLOR.BLACK;
   ctx.fillRect(0, 0, canvas.width, canvas.height);

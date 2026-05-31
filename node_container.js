@@ -1,10 +1,11 @@
 "use strict";
 
-// Used for when the user highlights text in their code
+/** Handles user cursor and text selection/highlighting */
 class Selection{
   constructor(){
     this.nodeI = null; // Index of ComputeNode being focused
-    this.cursor = { lineI: 0, charI: 0 }; // Cursor location
+    this.cursor = {};
+    this.cursorBlink = { time: Date.now() };
     this.range = {
       start: { lineI: 0, charI: 0 },
       current: { lineI: 0, charI: 0 },
@@ -43,15 +44,31 @@ class Selection{
         ) return true;
         return false;
       },
-    }; // Selection range
-    this.cursorBlink = Date.now();
-  }
+      lineSelected(lineI){
+        if(this.isNull) return false;
+        if(this.lowerLineI <= lineI && this.upperLineI >= lineI) return true;
+        return false;
+      },
+    };
 
-  lineSelected(lineI){
-    if(this.range.isNull) return false;
-    if(this.range.lowerLineI <= lineI && this.range.upperLineI >= lineI)
-      return true;
-    return false;
+    Object.defineProperty(this.cursorBlink, "reset", {
+      value: () => this.cursorBlink.time = Date.now(),
+    });
+    let blinkReset = this.cursorBlink.reset;
+    Object.defineProperty(this.cursor, "lineI", {
+      get: function() { return this._lineI },
+      set: function(val) {
+        this._lineI = val;
+        blinkReset();
+      },
+    });
+    Object.defineProperty(this.cursor, "charI", {
+      get: function() { return this._charI },
+      set: function(val) {
+        this._charI = val;
+        blinkReset();
+      },
+    });
   }
 
   focusLost(){
@@ -59,21 +76,20 @@ class Selection{
     this.cursor.lineI = this.cursor.charI = 0;
     this.range.initTo(0, 0);
   }
-  resetBlinker(){
-    this.cursorBlink = Date.now();
-  }
 }
 
-// Holds all nodes, coordinates keyboard input and mouse selection
+/** Holds all nodes, coordinates keyboard input and mouse selection */
 class NodeContainer{
   constructor(nodeTypes){
     this.nodesW = nodeTypes[0].length; // Width of table of nodes
     this.nodesH = nodeTypes.length; // Height of table of nodes
 
-    this.nodeLines = null; // Object reference for codeBox's lines
+    /** Object reference for focused codeBox's lines */
+    this.nodeLines = null;
 
     this.select = new Selection(); // Passed to the currently focused node
-    this.cursor = this.select.cursor; // Used as an object reference
+    /** Object reference for selection cursor */
+    this.cursor = this.select.cursor;
 
     let sizeInit = {
       lineW: NUM.NODE_WIDTH+1, // Width of line (chars)
@@ -101,40 +117,69 @@ class NodeContainer{
     }
   }
 
-  initCompareCursors(){
-    if(this.select.nodeI === null) return null;
-
-    return {
-      lineI: this.cursor.lineI,
-      charI: this.cursor.charI,
-    };
-  }
-  compareCursors(prevCursor){
-    if(
-      prevCursor.lineI !== this.cursor.lineI ||
-      prevCursor.charI !== this.cursor.charI
-    ){
-      this.select.resetBlinker();
-    }
-  }
-
-  mouseDrag(mPos){ // Mouse held down, mouse movement
+  /** Mouse movement while left mouse button held down */
+  lmbDrag(mPos){
     if(this.select.nodeI === null) return;
 
-    let [cornerX, cornerY] = this.#nodeTopLeft(this.select.nodeI);
-    this.#cursorToMouse(this.select.nodeI, mPos, cornerX, cornerY);
+    this.#cursorToMouse(this.select.nodeI, mPos);
     this.select.range.current.lineI = this.cursor.lineI;
     this.select.range.current.charI = this.cursor.charI;
-    this.select.resetBlinker();
+    this.select.cursorBlink.reset();
   }
-  lmbDown(mPos){ // Left mouse button clicked
+  /** Left mouse button pressed down */
+  lmbDown(mPos){
+    let _nodeI = this.#getMousedOverNodeI(mPos);
+    this.select.nodeI = this.nodeLines = null;
+    if(_nodeI === -1){
+      this.select.focusLost();
+      return;
+    }
+
+    this.select.nodeI = _nodeI;
+    // Huzzah for object references
+    this.nodeLines = this.nodes[_nodeI].codeBox.lines;
+
+    this.#cursorToMouse(_nodeI, mPos);
+    this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
+    this.select.cursorBlink.reset();
+  }
+  /** Right mouse button pressed down */
+  rmbDown(mPos, clipboardData){
+    let _nodeI = this.#getMousedOverNodeI(mPos);
+    this.select.nodeI = this.nodeLines = null;
+    if(_nodeI === -1) return;
+    /**
+    if(this.select.range.isNull){
+      let pastedStr = clipboardData.getData("text/plain").toUpperCase();
+      this.attemptPaste(pastedStr);
+    }else{
+      let cutStr = this.attemptCut();
+      if(cutStr !== null) clipboardData.setData("text/plain", cutStr);
+    }
+    */
+  }
+  #nodeTopLeft(nodeI){
+    let cornerX = this.nodes[nodeI].codeBox.x + NUM.CHAR_GAP;
+    let cornerY = this.nodes[nodeI].codeBox.y + 2*NUM.CHAR_GAP +
+      this.nodes[nodeI].codeBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
+    return [cornerX, cornerY];
+  }
+  #cursorToMouse(nodeI, mPos){
     let cornerX = 0;
     let cornerY = 0;
-    for(let i=0; i<=this.nodes.length; i++){
-      if(i === this.nodes.length){ // No nodes were selected
-        this.select.nodeI = this.nodeLines = null;
-        break;
-      }
+    [cornerX, cornerY] = this.#nodeTopLeft(nodeI);
+    this.cursor.lineI = Math.max(0, Math.min(
+      this.nodes[nodeI].codeBox.lines.strCount()-1,
+      Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
+    this.cursor.charI = Math.max(0, Math.min(
+      this.nodes[nodeI].codeBox.lines.strLen(this.cursor.lineI),
+      Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
+  }
+  /** Returns index of moused over codeBox (-1 for failure) */
+  #getMousedOverNodeI(mPos){
+    let cornerX = 0;
+    let cornerY = 0;
+    for(let i=0; i<this.nodes.length; i++){
       // codeBox only exists within computeNodes
       if(this.nodes[i].nodeType !== 1) continue;
 
@@ -144,35 +189,17 @@ class NodeContainer{
         mPos.x < cornerX + (NUM.NODE_WIDTH+1)*NUM.CHAR_WIDTH &&
         mPos.y >= cornerY &&
         mPos.y < cornerY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT
-      ){ // Collision detection
-        this.select.nodeI = i;
-        // Huzzah for object references
-        this.nodeLines = this.nodes[i].codeBox.lines;
-
-        this.#cursorToMouse(i, mPos, cornerX, cornerY);
-        this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
-        this.select.resetBlinker();
-        break;
+      ){
+        return i;
       }
     }
-  }
-  #nodeTopLeft(nodeI){
-    let cornerX = this.nodes[nodeI].codeBox.x + NUM.CHAR_GAP;
-    let cornerY = this.nodes[nodeI].codeBox.y + 2*NUM.CHAR_GAP +
-      this.nodes[nodeI].codeBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
-    return [cornerX, cornerY];
-  }
-  #cursorToMouse(nodeI, mPos, cornerX, cornerY){
-    this.cursor.lineI = Math.max(0, Math.min(
-      this.nodes[nodeI].codeBox.lines.strCount()-1,
-      Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
-    this.cursor.charI = Math.max(0, Math.min(
-      this.nodes[nodeI].codeBox.lines.strLen(this.cursor.lineI),
-      Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
+    return -1;
   }
 
   addChar(char){
-    if(!ALLOWED_CHARS.test(char) || char.length !== 1) return;
+    if(char.length !== 1) return;
+    let _char = char.toUpperCase();
+    if(!ALLOWED_CHARS.test(_char)) return;
 
     if(!this.select.range.isNull){
       let afterDel = this.#delSelectionInfo();
@@ -184,7 +211,7 @@ class NodeContainer{
       return;
     }
 
-    this.nodeLines.charAdd(this.cursor.lineI, this.cursor.charI, char);
+    this.nodeLines.charAdd(this.cursor.lineI, this.cursor.charI, _char);
     this.cursor.charI += 1;
   }
   newLine(){
@@ -421,7 +448,7 @@ class NodeContainer{
     this.cursor.charI = newCursorCharI;
   }
   selectAll(){
-    this.select.range.start.lineI = this.select.range.start.charI = 0
+    this.select.range.start.lineI = this.select.range.start.charI = 0;
     this.cursor.lineI = this.select.range.current.lineI =
       this.nodeLines.strCount()-1;
     this.cursor.charI = this.select.range.current.charI =
