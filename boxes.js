@@ -1,117 +1,62 @@
 "use strict";
 
-// Empty box, just has its dimensions and draw method
+/** Empty box, just has its dimensions and draw method */
 class Box{
-  constructor({x, y, w, h, borderW=1}){
+  constructor({x, y, w, h, borderFull=false}){
+    let borderW = borderFull ? 3 : 1;
     this.x = x + ((borderW-1)/2); // x-pos of box's top left
     this.y = y + ((borderW-1)/2); // y-pos of box's top left
     this.w = w - (borderW - 1); // Box's width
     this.h = h - (borderW - 1); // Box's height
-    this.borderW = borderW; // Width of box's border
+    this.borderFull = borderFull; // Whether box border is 1px or 3px
   }
 
-  drawBox(color = ctx.strokeStyle){
+  drawBox(color){
     ctx.strokeStyle = color;
-    ctx.lineWidth = this.borderW;
+    ctx.lineWidth = this.borderFull ? 3 : 1;
     ctx.strokeRect(this.x-0.5, this.y-0.5, this.w, this.h);
     ctx.lineWidth = 1;
   }
 }
 
-class StringList{
-  constructor(lineW, maxLines){
-    this.lineW = lineW;
-    this.maxLines = maxLines;
-    this.lineStrs = [""];
-  }
-  strAdd(strI){
-    this.lineStrs.splice(strI+1, 0, "");
-  }
-  strDel(strI){
-    if(strI >= this.lineStrs.length) return;
-    if(this.lineStrs.length <= 1) return; // Don't want an empty lineStr
-    this.lineStrs.splice(strI, 1);
-  }
-  strCount(){
-    return this.lineStrs.length;
-  }
-  strGet(strI){
-    if(strI >= this.lineStrs.length) return "";
-    return this.lineStrs[strI];
-  }
-  strSet(strI, strValue){
-    if(strI >= this.maxLines) return;
-    while(strI >= this.lineStrs.length)
-      this.lineStrs.push(""); // Expand lineString
-    // The substr crops the strValue to prevent text overflow
-    this.lineStrs[strI] = strValue.substr(0, this.lineW);
-  }
-  strLen(strI){
-    if(strI >= this.lineStrs.length) return 0;
-    return this.lineStrs[strI].length;
-  }
-  strCut(strI, charI){ // Cuts string charI from end
-    if(strI >= this.lineStrs.length) return "";
-    if(charI > this.lineStrs[strI].length) return "";
-    let cutStr = this.lineStrs[strI].substr(-charI);
-    this.lineStrs[strI] = this.lineStrs[strI].slice(0, -charI);
-    return cutStr;
-  }
-  charAdd(strI, charI, charVar){
-    if(strI >= this.lineStrs.length) return;
-    if(charI > this.lineStrs[strI].length)
-      charI = this.lineStrs[strI].length;
-    let str = this.lineStrs[strI];
-    this.strSet(strI, str.substr(0, charI) + charVar + str.substr(charI));
-  }
-  charDel(strI, charI){
-    if(strI >= this.lineStrs.length) return;
-    if(charI > this.lineStrs[strI].length) return;
-    let str = this.lineStrs[strI];
-    this.strSet(strI, str.substr(0, charI-1) + str.substr(charI));
-  }
-}
-
-// Can draw text and bars, dimensions set relative to font dimensions
+/** Can draw text and bars, dimensions set relative to font dimensions */
 class BoxText extends Box{
   constructor({
-    x, y, lineW, maxLines, extraH=0, isTextCentered=false, borderW=1
+    x, y, lineW, maxLines, extraH=0, isTextCentered=false, borderFull=false
   }){
     super({
       x: x,
       y: y,
       w: lineW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
       h: maxLines*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
-      borderW: borderW,
+      borderFull: borderFull,
     });
     this.lineW = lineW; // Width of the box in terms of characters
     this.maxLines = maxLines; // Maximum number of string lines
     this.offsetY = Math.floor(extraH/2); // Y-padding for text lines (px)
     /** If true, text is centered within box's width */
     this.isTextCentered = isTextCentered;
-
+    /** List of strings to draw to box */
     this.lines = new StringList(this.lineW, this.maxLines);
   }
 
-  // Draws text from lineString to the canvas (extraY used for "FAILURE")
-  drawLine(color, lineI, extraY=0){
+  /** Draws one line from lineStrs to canvas (extraY used for "FAILURE") */
+  drawStr(textColor, lineI, extraY=0){
     let offsetX = 0;
-    if(this.isTextCentered){
+    if(this.isTextCentered)
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
-    }
-    ctx.fillStyle = color;
+    ctx.fillStyle = textColor;
     ctx.fillText(
       this.lines.strGet(lineI),
       this.x+NUM.CHAR_GAP + offsetX,
       this.y+NUM.CHAR_GAP + (lineI+1)*NUM.LINE_HEIGHT + this.offsetY+extraY
     );
   }
-  // Used to draw those solid color boxes (and bars)
+  /** Draws solid bar with height of font's line-height to canvas */
   drawBar(barColor, lineI, startChar, endChar, extraStart=0, extraEnd=0){
     let offsetX = 0;
-    if(this.isTextCentered){
+    if(this.isTextCentered)
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
-    }
     ctx.fillStyle = barColor;
     ctx.fillRect(
       this.x+NUM.CHAR_GAP + offsetX + startChar*NUM.CHAR_WIDTH - extraStart,
@@ -123,7 +68,7 @@ class BoxText extends Box{
   }
 }
 
-// Can divide a line into different colors for comments and selection
+/** Can divide a line into different colors for comments and selection */
 class BoxCode extends BoxText{
   constructor({x, y, lineW, maxLines}){
     super({
@@ -164,9 +109,9 @@ class BoxCode extends BoxText{
 
       let commentStart = this.lines.strGet(i).indexOf("#");
       if(this.activeLine === i){
-        this.drawLine(COLOR.BLACK, i);
+        this.drawStr(COLOR.BLACK, i);
       }else if(commentStart === -1 && selectStart === -1){
-        this.drawLine(COLOR.LIGHT_GRAY, i);
+        this.drawStr(COLOR.LIGHT_GRAY, i);
       }else{
         this.drawSplitLine(i, commentStart, selectStart, selectEnd);
       }

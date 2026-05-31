@@ -1,13 +1,13 @@
 "use strict";
 
-class baseNode{
+class _BaseNode{
   constructor({nodeType}){
     this.nodeType = nodeType;
   }
 }
 
-// Red "Communication Error" node (no functionality)
-class CorruptNode extends baseNode{
+/** Red "Communication Error" node (no functionality) */
+class CorruptNode extends _BaseNode{
   constructor(x, y, sizeInit){
     super({
       nodeType: 0,
@@ -51,21 +51,21 @@ class CorruptNode extends baseNode{
       y: y,
       w: sideW,
       h: sideH + expandCalc(1, false),
-      borderW: 3,
+      borderFull: true,
     });
     this.sideBox2 = new Box({
       x: sideX,
       y: y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
       w: sideW,
       h: sideH + expandCalc(2, false),
-      borderW: 3,
+      borderFull: true,
     });
     this.sideBox3 = new Box({
       x: sideX,
       y: y + this.sideBox1.h,
       w: sideW,
       h: sideH + expandCalc(3, false),
-      borderW: 3,
+      borderFull: true,
     });
 
     this.nodeBox = new Box({
@@ -73,7 +73,7 @@ class CorruptNode extends baseNode{
       y: y,
       w: this.descBox.w + sizeInit.sideWPx + 6,
       h: this.descBox.h + 4,
-      borderW: 3,
+      borderFull: true,
     });
   }
 
@@ -81,10 +81,10 @@ class CorruptNode extends baseNode{
     this.nodeBox.drawBox(COLOR.CORRUPT_RED);
 
     this.descBox.drawBox(COLOR.CORRUPT_RED);
-    this.descBox.drawBar(COLOR.CORRUPT_RED, 2, 0, this.descBox.lines.strLen(4));
-    this.descBox.drawLine(COLOR.CORRUPT_RED, 4);
-    this.descBox.drawLine(COLOR.CORRUPT_RED, 5, 2);
-    this.descBox.drawBar(COLOR.CORRUPT_RED, 7, 0, this.descBox.lines.strLen(4));
+    this.descBox.drawBar(COLOR.CORRUPT_RED, 2, 0, 13);
+    this.descBox.drawStr(COLOR.CORRUPT_RED, 4);
+    this.descBox.drawStr(COLOR.CORRUPT_RED, 5, 2);
+    this.descBox.drawBar(COLOR.CORRUPT_RED, 7, 0, 13);
 
     this.sideBox1.drawBox(COLOR.CORRUPT_RED);
     this.sideBox2.drawBox(COLOR.CORRUPT_RED);
@@ -92,8 +92,8 @@ class CorruptNode extends baseNode{
   }
 }
 
-// Node within which user can write code
-class ComputeNode extends baseNode{
+/** Node within which user can write code */
+class ComputeNode extends _BaseNode{
   constructor(x, y, sizeInit){
     super({
       nodeType: 1,
@@ -196,37 +196,37 @@ class ComputeNode extends baseNode{
 
     // Draws the ACC box
     this.accBox.drawBox(COLOR.LIGHT_GRAY);
-    this.accBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.accBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.accBox.lines.strSet(1, this.ACC.toString());
-    this.accBox.drawLine(COLOR.LIGHT_GRAY, 1);
+    this.accBox.drawStr(COLOR.LIGHT_GRAY, 1);
 
     // Draws the BAK box
     this.bakBox.drawBox(COLOR.LIGHT_GRAY);
-    this.bakBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.bakBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.bakBox.lines.strSet(1,
       this.BAK.toString().length + 2 <= this.bakBox.lineW ?
         "(" + this.BAK.toString() + ")" :
         this.BAK.toString());
-    this.bakBox.drawLine(COLOR.LIGHT_GRAY, 1);
+    this.bakBox.drawStr(COLOR.LIGHT_GRAY, 1);
 
     // Draws the LAST box
     this.lastBox.drawBox(COLOR.LIGHT_GRAY);
-    this.lastBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.lastBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.lastBox.lines.strSet(1,
       this.LAST !== null ? this.LAST.toString() : "N/A");
-    this.lastBox.drawLine(COLOR.LIGHT_GRAY, 1);
+    this.lastBox.drawStr(COLOR.LIGHT_GRAY, 1);
 
     // Draws the MODE box
     this.modeBox.drawBox(COLOR.LIGHT_GRAY);
-    this.modeBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.modeBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.modeBox.lines.strSet(1, this.MODE.toString());
-    this.modeBox.drawLine(COLOR.LIGHT_GRAY, 1);
+    this.modeBox.drawStr(COLOR.LIGHT_GRAY, 1);
 
     // Draws the IDLE box
     this.idleBox.drawBox(COLOR.LIGHT_GRAY);
-    this.idleBox.drawLine(COLOR.TEXT.DARKER, 0);
+    this.idleBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.idleBox.lines.strSet(1, this.IDLE.toString() + "%");
-    this.idleBox.drawLine(COLOR.LIGHT_GRAY, 1);
+    this.idleBox.drawStr(COLOR.LIGHT_GRAY, 1);
   }
 
   haltExecution(){
@@ -239,8 +239,8 @@ class ComputeNode extends baseNode{
   }
 }
 
-// Node which stores retrievable values given to it
-class StackMemNode extends baseNode{
+/** Node which stores retrievable values given to it */
+class StackMemNode extends _BaseNode{
   constructor(x, y, sizeInit){
     super({
       nodeType: 2,
@@ -276,19 +276,20 @@ class StackMemNode extends baseNode{
 
     // Draws the description box ("STACK MEMORY NODE")
     this.descBox.drawBox(COLOR.LIGHT_GRAY);
-    this.descBox.drawBar(COLOR.WHITE, 5, 0, this.descBox.lines.strLen(7));
-    this.descBox.drawLine(COLOR.LIGHT_GRAY, 7);
-    this.descBox.drawBar(COLOR.WHITE, 9, 0, this.descBox.lines.strLen(7));
+    this.descBox.drawBar(COLOR.WHITE, 5, 0, 17);
+    this.descBox.drawStr(COLOR.LIGHT_GRAY, 7);
+    this.descBox.drawBar(COLOR.WHITE, 9, 0, 17);
 
     this.memoryBox.drawBox(COLOR.LIGHT_GRAY);
-    // Prints out each value in memory
+    // Draws each memory entry value
     for(let i=0; i<NUM.NODE_HEIGHT; i++){
-      // There shouldn't be any lower ones if the current line is empty
-      if(!this.memoryBox.lines.strGet(i)) break;
-      if(!this.memoryBox.lines.strGet(i+1))
+      // Draws colored bar under newest entry
+      if(this.memoryBox.lines.strGet(i) && !this.memoryBox.lines.strGet(i+1))
         this.memoryBox.drawBar(COLOR.BAR.MEM_RED,
-          i, 0, this.memoryBox.lineW, 3, 2);
-      this.memoryBox.drawLine(COLOR.LIGHT_GRAY, i);
+          i, 0, this.memoryBox.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-1);
+      this.memoryBox.drawStr(COLOR.LIGHT_GRAY, i);
+      // No newer entries if the next line is empty
+      if(!this.memoryBox.lines.strGet(i+1)) break;
     }
   }
 }

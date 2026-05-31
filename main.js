@@ -53,35 +53,40 @@ window.addEventListener("keydown", function(evt) {
 
   // Prevent space and arrow keys from causing unwanted scrolling
   // Prevent backspace causing the browser to navigate backwards
-  if([32, 37, 38, 39, 40, 8].indexOf(evt.keyCode) > -1)
+  if([" ", "Backspace", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"
+      ].indexOf(evt.code) > -1){
     evt.preventDefault();
+  }
 
   if(prevCursor === null) return;
 
-  switch(evt.keyCode){
-    case 13: // Enter
+  switch(evt.code){
+    case "Enter":
       allNodes.newLine();
       break;
-    case 32: // Space
+    case " ":
       allNodes.addChar(" ");
       break;
-    case 8: // Backspace
+    case "Backspace":
       allNodes.bakChar();
       break;
-    case 46: // Delete
+    case "Delete":
       allNodes.delChar();
       break;
-    case 37: // Left
+    case "ArrowLeft":
       allNodes.arrowKey(0);
       break;
-    case 38: // Up
+    case "ArrowUp":
       allNodes.arrowKey(1);
       break;
-    case 39: // Right
+    case "ArrowRight":
       allNodes.arrowKey(2);
       break;
-    case 40: // Down
+    case "ArrowDown":
       allNodes.arrowKey(3);
+      break;
+    case "Escape":
+      allNodes.select.focusLost();
       break;
   }
 

@@ -1,9 +1,9 @@
 "use strict";
 
 const NUM = Object.freeze({
-  /** Characters that will fit in a single BoxCode line */
+  /** Max number of characters in BoxCode string line */
   NODE_WIDTH: 18,
-  /** Number of string lines in a node (minimum of 14) */
+  /** Max number of string lines in a node (minimum of 14) */
   NODE_HEIGHT: 15,
   /** Maximum ACC value */
   ACC_MAX: 999,
