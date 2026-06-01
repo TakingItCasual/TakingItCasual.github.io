@@ -4,7 +4,7 @@
 ctx.strokeStyle = COLOR.WHITE;
 ctx.font = Math.floor(NUM.CHAR_HEIGHT/3*4) + "pt tis-100-copy";
 
-let allNodes = new NodeContainer([
+let nodeManager = new NodeContainer([
   [1, 1, 2, 0],
   [0, 1, 1, 1],
   [1, 2, 0, 1]
@@ -25,13 +25,13 @@ function getMousePos(canvas, evt) {
 let mPos = { x: 0, y: 0 }; // Mouse position
 canvas.addEventListener("mousemove", function(evt) {
   mPos = getMousePos(canvas, evt);
-  if(evt.buttons % 2 === 1) allNodes.lmbDrag(mPos);
+  if(evt.buttons % 2 === 1) nodeManager.lmbDrag(mPos);
 });
 canvas.addEventListener("mousedown", function(evt) {
   if(evt.button === 0){
-    allNodes.lmbDown(mPos);
+    nodeManager.lmbDown(mPos);
   }else if(evt.button === 2){
-    allNodes.rmbDown(mPos, evt.clipboardData);
+    nodeManager.rmbDown(mPos, evt.clipboardData);
   }
 });
 
@@ -47,56 +47,56 @@ canvas.addEventListener("keydown", function(evt) {
     evt.preventDefault();
   }
 
-  if(allNodes.select.nodeI === null) return;
+  if(nodeManager.select.nodeI === null) return;
 
   if(!evt.ctrlKey){
     switch(evt.key){
       case "Enter":
-        allNodes.newLine();
+        nodeManager.newLine();
         break;
       case "Backspace":
-        allNodes.bakChar();
+        nodeManager.bakChar();
         break;
       case "Delete":
-        allNodes.delChar();
+        nodeManager.delChar();
         break;
       case "ArrowLeft":
-        allNodes.arrowKey(0);
+        nodeManager.arrowKey(0);
         break;
       case "ArrowUp":
-        allNodes.arrowKey(1);
+        nodeManager.arrowKey(1);
         break;
       case "ArrowRight":
-        allNodes.arrowKey(2);
+        nodeManager.arrowKey(2);
         break;
       case "ArrowDown":
-        allNodes.arrowKey(3);
+        nodeManager.arrowKey(3);
         break;
       case "Escape":
-        allNodes.select.focusLost();
+        nodeManager.select.focusLost();
         break;
       default:
-        allNodes.addChar(evt.key);
+        nodeManager.addChar(evt.key);
         break;
     }
   }else if(evt.key === "A" || evt.key === "a"){
-    allNodes.selectAll();
+    nodeManager.selectAll();
   }
 });
 canvas.addEventListener("blur", function(evt) {
-  allNodes.select.focusLost();
+  nodeManager.select.focusLost();
 });
 
 // Handle copying/cutting/pasting into code boxes
 canvas.addEventListener("copy", function(evt){
-  let copiedStr = allNodes.attemptCopy()
+  let copiedStr = nodeManager.attemptCopy()
   if(copiedStr !== null)
     evt.clipboardData.setData("text/plain", copiedStr);
 
   evt.preventDefault();
 });
 canvas.addEventListener("cut", function(evt){
-  let cutStr = allNodes.attemptCut()
+  let cutStr = nodeManager.attemptCut()
   if(cutStr !== null)
     evt.clipboardData.setData("text/plain", cutStr);
 
@@ -107,7 +107,7 @@ canvas.addEventListener("paste", function(evt){
   evt.stopPropagation();
 
   let pastedStr = evt.clipboardData.getData("text/plain").toUpperCase();
-  allNodes.attemptPaste(pastedStr);
+  nodeManager.attemptPaste(pastedStr);
 });
 
 // Disable unwanted behaviors in canvas
@@ -119,18 +119,22 @@ canvas.addEventListener("dragstart", function(evt) {
 });
 
 for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  allNodes.nodes[0].codeBox.lines.strSet(i, "testing " + i);
-allNodes.nodes[0].codeBox.lines.strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+  nodeManager.nodes[0].mainTextBox.lines.strSet(
+    i, "testing " + i);
+nodeManager.nodes[0].mainTextBox.lines.strSet(
+  NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 
 for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  allNodes.nodes[1].codeBox.lines.strSet(i, "testing " + (i+NUM.NODE_HEIGHT-1));
-allNodes.nodes[1].codeBox.lines.strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
-allNodes.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
-allNodes.nodes[1].BAK = -999;
+  nodeManager.nodes[1].mainTextBox.lines.strSet(
+    i, "testing " + (i+NUM.NODE_HEIGHT-1));
+nodeManager.nodes[1].mainTextBox.lines.strSet(
+  NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+nodeManager.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
+nodeManager.nodes[1].BAK = -999;
 
-allNodes.nodes[2].memoryBox.lines.strSet(0, "254");
-allNodes.nodes[2].memoryBox.lines.strSet(1, "498");
-allNodes.nodes[2].memoryBox.lines.strSet(2, "782");
+nodeManager.nodes[2].memoryBox.lines.strSet(0, "254");
+nodeManager.nodes[2].memoryBox.lines.strSet(1, "498");
+nodeManager.nodes[2].memoryBox.lines.strSet(2, "782");
 
 function gameLoop() {
   ctx.beginPath();
@@ -143,7 +147,7 @@ function gameLoop() {
   ctx.fillText("!\"#$%&'()*+,-./:;", 10, 22+NUM.LINE_HEIGHT*2);
   ctx.fillText("<=>?@[\\]_`{|}~", 10, 22+NUM.LINE_HEIGHT*3);
 
-  allNodes.drawNodes();
+  nodeManager.drawNodes();
 
   requestAnimationFrame(gameLoop);
 }

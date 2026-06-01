@@ -91,25 +91,17 @@ class NodeContainer{
     /** Object reference for selection cursor */
     this.cursor = this.select.cursor;
 
-    let sizeInit = {
-      lineW: NUM.NODE_WIDTH+1, // Width of line (chars)
-      maxLines: NUM.NODE_HEIGHT, // Maximum number of string lines
-      sideW: NUM.ACC_MIN.toString().length+1, // Width of side boxes (chars)
-      sideWPx: 0, // Width of side boxes (px)
-    };
-    sizeInit.sideWPx = sizeInit.sideW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2;
-
     this.nodes = [];
     let nodeY = 53;
     for(let y=0; y<this.nodesH; y++){
       let nodeX = 355;
       for(let x=0; x<this.nodesW; x++){
         if(nodeTypes[y][x] === 0){
-          this.nodes.push(new CorruptNode(nodeX, nodeY, sizeInit));
+          this.nodes.push(new CorruptNode(nodeX, nodeY));
         }else if(nodeTypes[y][x] === 1){
-          this.nodes.push(new ComputeNode(nodeX, nodeY, sizeInit));
+          this.nodes.push(new ComputeNode(nodeX, nodeY));
         }else if(nodeTypes[y][x] === 2){
-          this.nodes.push(new StackMemNode(nodeX, nodeY, sizeInit));
+          this.nodes.push(new StackMemNode(nodeX, nodeY));
         }
         nodeX += this.nodes[0].nodeBox.w + 46;
       }
@@ -137,7 +129,7 @@ class NodeContainer{
 
     this.select.nodeI = _nodeI;
     // Huzzah for object references
-    this.nodeLines = this.nodes[_nodeI].codeBox.lines;
+    this.nodeLines = this.nodes[_nodeI].mainTextBox.lines;
 
     this.#cursorToMouse(_nodeI, mPos);
     this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
@@ -159,9 +151,9 @@ class NodeContainer{
     */
   }
   #nodeTopLeft(nodeI){
-    let cornerX = this.nodes[nodeI].codeBox.x + NUM.CHAR_GAP;
-    let cornerY = this.nodes[nodeI].codeBox.y + 2*NUM.CHAR_GAP +
-      this.nodes[nodeI].codeBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
+    let cornerX = this.nodes[nodeI].mainTextBox.x + NUM.CHAR_GAP;
+    let cornerY = this.nodes[nodeI].mainTextBox.y + 2*NUM.CHAR_GAP +
+      this.nodes[nodeI].mainTextBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
     return [cornerX, cornerY];
   }
   #cursorToMouse(nodeI, mPos){
@@ -169,10 +161,10 @@ class NodeContainer{
     let cornerY = 0;
     [cornerX, cornerY] = this.#nodeTopLeft(nodeI);
     this.cursor.lineI = Math.max(0, Math.min(
-      this.nodes[nodeI].codeBox.lines.strCount()-1,
+      this.nodes[nodeI].mainTextBox.lines.strCount()-1,
       Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
     this.cursor.charI = Math.max(0, Math.min(
-      this.nodes[nodeI].codeBox.lines.strLen(this.cursor.lineI),
+      this.nodes[nodeI].mainTextBox.lines.strLen(this.cursor.lineI),
       Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
   }
   /** Returns index of moused over codeBox (-1 for failure) */
@@ -186,7 +178,7 @@ class NodeContainer{
       [cornerX, cornerY] = this.#nodeTopLeft(i);
       if(
         mPos.x >= cornerX &&
-        mPos.x < cornerX + (NUM.NODE_WIDTH+1)*NUM.CHAR_WIDTH &&
+        mPos.x < cornerX + (NUM.NODE_WIDTH_MAIN+1)*NUM.CHAR_WIDTH &&
         mPos.y >= cornerY &&
         mPos.y < cornerY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT
       ){
@@ -204,10 +196,10 @@ class NodeContainer{
     if(!this.select.range.isNull){
       let afterDel = this.#delSelectionInfo();
       if(afterDel === null) return;
-      if(afterDel.lowerLineLen + 1 > NUM.NODE_WIDTH) return;
+      if(afterDel.lowerLineLen + 1 > NUM.NODE_WIDTH_MAIN) return;
 
       this.delSelection();
-    }else if(this.nodeLines.strLen(this.cursor.lineI) >= NUM.NODE_WIDTH){
+    }else if(this.nodeLines.strLen(this.cursor.lineI) >= NUM.NODE_WIDTH_MAIN){
       return;
     }
 
@@ -249,7 +241,7 @@ class NodeContainer{
       if(
         this.nodeLines.strLen(this.cursor.lineI-1) +
         this.nodeLines.strLen(this.cursor.lineI) <=
-        NUM.NODE_WIDTH
+        NUM.NODE_WIDTH_MAIN
       ){
         this.cursor.lineI -= 1;
         this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
@@ -272,7 +264,7 @@ class NodeContainer{
       if(
         this.nodeLines.strLen(this.cursor.lineI) +
         this.nodeLines.strLen(this.cursor.lineI+1) <=
-        NUM.NODE_WIDTH
+        NUM.NODE_WIDTH_MAIN
       ){
         let combinedStr =
           this.nodeLines.strGet(this.cursor.lineI) +
@@ -308,7 +300,7 @@ class NodeContainer{
       this.select.range.lowerCharI +
       this.nodeLines.strLen(this.select.range.upperLineI) -
       this.select.range.upperCharI;
-    if(newLowerLineLen > NUM.NODE_WIDTH) return null;
+    if(newLowerLineLen > NUM.NODE_WIDTH_MAIN) return null;
 
     let newLineCount = this.nodeLines.strCount() -
       this.select.range.upperLineI + this.select.range.lowerLineI;
@@ -383,10 +375,9 @@ class NodeContainer{
   attemptCut(){
     let savedSelection = this.attemptCopy();
     if(savedSelection === null) return null;
-
     if(this.#delSelectionInfo() === null) return null;
+    
     this.delSelection();
-
     return savedSelection;
   }
   attemptPaste(clipboardStr){
@@ -414,7 +405,7 @@ class NodeContainer{
         this.cursor.lineI).substr(this.cursor.charI);
 
       for(let pastedLine of pastedLines){
-        if(pastedLine.length > NUM.NODE_WIDTH) return;
+        if(pastedLine.length > NUM.NODE_WIDTH_MAIN) return;
       }
     }else{
       let afterDel = this.#delSelectionInfo();
@@ -434,7 +425,7 @@ class NodeContainer{
         this.select.range.upperCharI);
 
       for(let pastedLine of pastedLines){
-        if(pastedLine.length > NUM.NODE_WIDTH) return;
+        if(pastedLine.length > NUM.NODE_WIDTH_MAIN) return;
       }
 
       this.delSelection();

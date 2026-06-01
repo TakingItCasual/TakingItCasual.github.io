@@ -1,16 +1,20 @@
 "use strict";
 
 const NUM = Object.freeze({
-  /** Max number of characters in BoxCode string line */
-  NODE_WIDTH: 18,
-  /** Max number of string lines in a node (minimum of 14) */
-  NODE_HEIGHT: 15,
   /** Maximum ACC value */
   ACC_MAX: 999,
   /** Minimum ACC value */
   get ACC_MIN(){
     return -this.ACC_MAX;
   },
+  /** Max number of characters in BoxCode string line */
+  NODE_WIDTH_MAIN: 18,
+  /** Max number of characters in node sidebar */
+  get NODE_WIDTH_SIDE(){
+    return this.ACC_MIN.toString().length + 1;
+  },
+  /** Max number of string lines in a node (minimum of 14) */
+  NODE_HEIGHT: 15,
   /** Multiplier for ASCII character dimensions */
   _CHAR_DIM_MULTI: 1,
   /** Height of ASCII characters */
@@ -21,7 +25,7 @@ const NUM = Object.freeze({
   get CHAR_WIDTH(){
     return this._CHAR_DIM_MULTI * 8;
   },
-  /** Pixel gap between lines and from sides (minimum of 2) */
+  /** Pixel gap between lines and from node sides (minimum of 2) */
   CHAR_GAP: 3,
   /** Used for spacing lines apart */
   get LINE_HEIGHT(){

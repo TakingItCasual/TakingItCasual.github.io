@@ -125,7 +125,7 @@ class BoxCode extends BoxText{
       }
     }
   }
-  /** Draws text lines, using seperate coloring for comments/selection */
+  /** Draws text line, using seperate coloring for comments/selection */
   drawSplitLine(lineI, commentStart, selectStart, selectEnd){
     let strParts = []; // List of lists of string indexes and colors
 

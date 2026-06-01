@@ -1,5 +1,5 @@
-TakingItCasual.github.io
-========================
+TIS-100 Clone
+=============
 
 My reverse-engineering of the puzzle game `TIS-100`_ by Zachtronics_.
 The font tis100copy was created with screenshots of the game and BitFontMaker2_.

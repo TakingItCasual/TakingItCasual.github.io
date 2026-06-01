@@ -2,7 +2,9 @@
 
 /** Template parent class for all node types */
 class _BaseNode{
-  constructor({nodeType}){
+  _sideWidthPx = NUM.NODE_WIDTH_SIDE*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2;
+
+  constructor({nodeType, x, y, isMainTextCentered, isBorderFull=false}){
     this.nodeType = nodeType;
     this.connections = {
       "left": null,
@@ -10,6 +12,20 @@ class _BaseNode{
       "right": null,
       "down": null,
     }
+    this.mainTextBox = new BoxText({
+      x: x + 2,
+      y: y + 2,
+      lineW: NUM.NODE_WIDTH_MAIN+1,
+      maxLines: NUM.NODE_HEIGHT,
+      isTextCentered: isMainTextCentered,
+    });
+    this.nodeBox = new Box({
+      x: x,
+      y: y,
+      w: this.mainTextBox.w + this._sideWidthPx + 6,
+      h: this.mainTextBox.h + 4,
+      isBorderFull: isBorderFull,
+    });
   }
 
   drawConnections(){
@@ -22,23 +38,19 @@ class _BaseNode{
 
 /** Red "Communication Error" node (no functionality) */
 class CorruptNode extends _BaseNode{
-  constructor(x, y, sizeInit){
+  constructor(x, y){
     super({
       nodeType: 0,
+      x: x,
+      y: y,
+      isMainTextCentered: true,
+      isBorderFull: true,
     });
 
-    this.descBox = new BoxText({
-      x: x+2,
-      y: y+2,
-      lineW: sizeInit.lineW,
-      maxLines: sizeInit.maxLines,
-      isTextCentered: true,
-    });
+    this.mainTextBox.lines.strSet(4, "COMMUNICATION");
+    this.mainTextBox.lines.strSet(5, "FAILURE");
 
-    this.descBox.lines.strSet(4, "COMMUNICATION");
-    this.descBox.lines.strSet(5, "FAILURE");
-
-    const remainder = (this.descBox.h-2)%4;
+    const remainder = (this.mainTextBox.h-2)%4;
     function expandCalc(boxNum, y_pos){
       if(remainder === 0) return 0;
       if(boxNum === 1){
@@ -56,9 +68,9 @@ class CorruptNode extends _BaseNode{
       }
       return 0;
     } // See expandCorrupt.txt to see the desired I/O behavior
-    const sideX = x+this.descBox.w + 2;
-    const sideW = sizeInit.sideWPx + 4;
-    const sideH = (this.descBox.h - remainder)/2 + 3;
+    const sideX = x+this.mainTextBox.w + 2;
+    const sideW = this._sideWidthPx + 4;
+    const sideH = (this.mainTextBox.h - remainder)/2 + 3;
 
     this.sideBox1 = new Box({
       x: sideX,
@@ -69,7 +81,7 @@ class CorruptNode extends _BaseNode{
     });
     this.sideBox2 = new Box({
       x: sideX,
-      y: y+(this.descBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
+      y: y+(this.mainTextBox.h-remainder)/4 + 1 + expandCalc(2, true) - 0.5,
       w: sideW,
       h: sideH + expandCalc(2, false),
       isBorderFull: true,
@@ -81,24 +93,16 @@ class CorruptNode extends _BaseNode{
       h: sideH + expandCalc(3, false),
       isBorderFull: true,
     });
-
-    this.nodeBox = new Box({
-      x: x,
-      y: y,
-      w: this.descBox.w + sizeInit.sideWPx + 6,
-      h: this.descBox.h + 4,
-      isBorderFull: true,
-    });
   }
 
   drawNode(){
     this.nodeBox.drawBox(COLOR.CORRUPT_RED);
 
-    this.descBox.drawBox(COLOR.CORRUPT_RED);
-    this.descBox.drawBar(COLOR.CORRUPT_RED, 2, 0, 13);
-    this.descBox.drawStr(COLOR.CORRUPT_RED, 4);
-    this.descBox.drawStr(COLOR.CORRUPT_RED, 5, 2);
-    this.descBox.drawBar(COLOR.CORRUPT_RED, 7, 0, 13);
+    this.mainTextBox.drawBox(COLOR.CORRUPT_RED);
+    this.mainTextBox.drawBar(COLOR.CORRUPT_RED, 2, 0, 13);
+    this.mainTextBox.drawStr(COLOR.CORRUPT_RED, 4);
+    this.mainTextBox.drawStr(COLOR.CORRUPT_RED, 5, 2);
+    this.mainTextBox.drawBar(COLOR.CORRUPT_RED, 7, 0, 13);
 
     this.sideBox1.drawBox(COLOR.CORRUPT_RED);
     this.sideBox2.drawBox(COLOR.CORRUPT_RED);
@@ -108,17 +112,21 @@ class CorruptNode extends _BaseNode{
 
 /** Node within which user can write code */
 class ComputeNode extends _BaseNode{
-  constructor(x, y, sizeInit){
+  constructor(x, y){
     super({
       nodeType: 1,
+      x: x,
+      y: y,
     });
 
     this.codeBox = new BoxCode({
-      x: x+2,
-      y: y+2,
-      lineW: sizeInit.lineW,
-      maxLines: sizeInit.maxLines,
+      x: this.mainTextBox.x,
+      y: this.mainTextBox.y,
+      lineW: this.mainTextBox.lineW,
+      maxLines: this.mainTextBox.maxLines,
     });
+    // Overwrite default main text box with ref to codeBox
+    this.mainTextBox = this.codeBox;
 
     // Expand the five info boxes next to the codeBox to match its height
     const info_boxes = 5;
@@ -131,13 +139,13 @@ class ComputeNode extends _BaseNode{
       if((expand-boxNum-1)%(info_boxes*2) === 0) total -= 1;
       return total;
     } // See expand.txt to see the desired I/O behavior
-    const sideX = x+this.codeBox.w+4;
+    const sideX = x+this.codeBox.w + 4;
 
     // Initialize the ACC box
     this.accBox = new BoxText({
       x: sideX,
-      y: y+2,
-      lineW: sizeInit.sideW,
+      y: y + 2,
+      lineW: NUM.NODE_WIDTH_SIDE,
       maxLines: 2,
       extraH: expandCalc(0),
       isTextCentered: true,
@@ -149,7 +157,7 @@ class ComputeNode extends _BaseNode{
     this.bakBox = new BoxText({
       x: sideX,
       y: this.accBox.y+this.accBox.h + 2,
-      lineW: sizeInit.sideW,
+      lineW: NUM.NODE_WIDTH_SIDE,
       maxLines: 2,
       extraH: expandCalc(1),
       isTextCentered: true,
@@ -161,7 +169,7 @@ class ComputeNode extends _BaseNode{
     this.lastBox = new BoxText({
       x: sideX,
       y: this.bakBox.y+this.bakBox.h + 2,
-      lineW: sizeInit.sideW,
+      lineW: NUM.NODE_WIDTH_SIDE,
       maxLines: 2,
       extraH: expandCalc(2),
       isTextCentered: true,
@@ -173,7 +181,7 @@ class ComputeNode extends _BaseNode{
     this.modeBox = new BoxText({
       x: sideX,
       y: this.lastBox.y+this.lastBox.h + 2,
-      lineW: sizeInit.sideW,
+      lineW: NUM.NODE_WIDTH_SIDE,
       maxLines: 2,
       extraH: expandCalc(3),
       isTextCentered: true,
@@ -185,20 +193,13 @@ class ComputeNode extends _BaseNode{
     this.idleBox = new BoxText({
       x: sideX,
       y: this.modeBox.y+this.modeBox.h + 2,
-      lineW: sizeInit.sideW,
+      lineW: NUM.NODE_WIDTH_SIDE,
       maxLines: 2,
       extraH: expandCalc(4),
       isTextCentered: true,
     });
     this.IDLE = 0;
     this.idleBox.lines.strSet(0, "IDLE");
-
-    this.nodeBox = new Box({
-      x: x,
-      y: y,
-      w: this.codeBox.w + sizeInit.sideWPx + 6,
-      h: this.codeBox.h + 4,
-    });
   }
 
   drawNode(select){
@@ -255,33 +256,22 @@ class ComputeNode extends _BaseNode{
 
 /** Node which stores retrievable values given to it */
 class StackMemNode extends _BaseNode{
-  constructor(x, y, sizeInit){
+  constructor(x, y){
     super({
       nodeType: 2,
-    });
-
-    this.descBox = new BoxText({
-      x: x+2,
-      y: y+2,
-      lineW: sizeInit.lineW,
-      maxLines: sizeInit.maxLines,
-      isTextCentered: true,
-    });
-    this.descBox.lines.strSet(7, "STACK MEMORY NODE");
-
-    this.memoryBox = new BoxText({
-      x: x+this.descBox.w+4,
-      y: y+2,
-      lineW: sizeInit.sideW,
-      maxLines: sizeInit.maxLines,
-      isTextCentered: true,
-    });
-
-    this.nodeBox = new Box({
       x: x,
       y: y,
-      w: this.descBox.w + sizeInit.sideWPx + 6,
-      h: this.descBox.h + 4,
+      isMainTextCentered: true,
+    });
+
+    this.mainTextBox.lines.strSet(7, "STACK MEMORY NODE");
+
+    this.memoryBox = new BoxText({
+      x: x+this.mainTextBox.w+4,
+      y: y+2,
+      lineW: NUM.NODE_WIDTH_SIDE,
+      maxLines: NUM.NODE_HEIGHT,
+      isTextCentered: true,
     });
   }
 
@@ -289,10 +279,10 @@ class StackMemNode extends _BaseNode{
     this.nodeBox.drawBox(COLOR.LIGHT_GRAY);
 
     // Draws the description box ("STACK MEMORY NODE")
-    this.descBox.drawBox(COLOR.LIGHT_GRAY);
-    this.descBox.drawBar(COLOR.WHITE, 5, 0, 17);
-    this.descBox.drawStr(COLOR.LIGHT_GRAY, 7);
-    this.descBox.drawBar(COLOR.WHITE, 9, 0, 17);
+    this.mainTextBox.drawBox(COLOR.LIGHT_GRAY);
+    this.mainTextBox.drawBar(COLOR.WHITE, 5, 0, 17);
+    this.mainTextBox.drawStr(COLOR.LIGHT_GRAY, 7);
+    this.mainTextBox.drawBar(COLOR.WHITE, 9, 0, 17);
 
     this.memoryBox.drawBox(COLOR.LIGHT_GRAY);
     // Draws each memory entry value
