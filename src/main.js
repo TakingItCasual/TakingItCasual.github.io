@@ -27,11 +27,11 @@ canvas.addEventListener("mousemove", function(evt) {
   mPos = getMousePos(canvas, evt);
   if(evt.buttons % 2 === 1) nodeManager.lmbDrag(mPos);
 });
-canvas.addEventListener("mousedown", function(evt) {
+canvas.addEventListener("mousedown", async function(evt) {
   if(evt.button === 0){
     nodeManager.lmbDown(mPos);
   }else if(evt.button === 2){
-    nodeManager.rmbDown(mPos, evt.clipboardData);
+    await nodeManager.rmbDown(mPos);
   }
 });
 
@@ -61,16 +61,16 @@ canvas.addEventListener("keydown", function(evt) {
         nodeManager.delChar();
         break;
       case "ArrowLeft":
-        nodeManager.arrowKey(0);
+        nodeManager.arrowKey(DIR.LEFT);
         break;
       case "ArrowUp":
-        nodeManager.arrowKey(1);
+        nodeManager.arrowKey(DIR.UP);
         break;
       case "ArrowRight":
-        nodeManager.arrowKey(2);
+        nodeManager.arrowKey(DIR.RIGHT);
         break;
       case "ArrowDown":
-        nodeManager.arrowKey(3);
+        nodeManager.arrowKey(DIR.DOWN);
         break;
       case "Escape":
         nodeManager.select.focusLost();
@@ -88,25 +88,25 @@ canvas.addEventListener("blur", function(evt) {
 });
 
 // Handle copying/cutting/pasting into code boxes
-canvas.addEventListener("copy", function(evt){
+window.addEventListener("copy", function(evt){
   let copiedStr = nodeManager.attemptCopy()
   if(copiedStr !== null)
     evt.clipboardData.setData("text/plain", copiedStr);
 
   evt.preventDefault();
 });
-canvas.addEventListener("cut", function(evt){
+window.addEventListener("cut", function(evt){
   let cutStr = nodeManager.attemptCut()
   if(cutStr !== null)
     evt.clipboardData.setData("text/plain", cutStr);
 
   evt.preventDefault();
 });
-canvas.addEventListener("paste", function(evt){
+window.addEventListener("paste", function(evt){
   evt.preventDefault();
   evt.stopPropagation();
 
-  let pastedStr = evt.clipboardData.getData("text/plain").toUpperCase();
+  let pastedStr = evt.clipboardData.getData("text/plain");
   nodeManager.attemptPaste(pastedStr);
 });
 
@@ -119,16 +119,16 @@ canvas.addEventListener("dragstart", function(evt) {
 });
 
 for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  nodeManager.nodes[0].mainTextBox.lines.strSet(
-    i, "testing " + i);
-nodeManager.nodes[0].mainTextBox.lines.strSet(
-  NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+  nodeManager.nodes[0].mainTextBox.lines
+    .strSet(i, "testing " + i);
+nodeManager.nodes[0].mainTextBox.lines
+  .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 
 for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  nodeManager.nodes[1].mainTextBox.lines.strSet(
-    i, "testing " + (i+NUM.NODE_HEIGHT-1));
-nodeManager.nodes[1].mainTextBox.lines.strSet(
-  NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+  nodeManager.nodes[1].mainTextBox.lines
+    .strSet(i, "testing " + (i+NUM.NODE_HEIGHT-1));
+nodeManager.nodes[1].mainTextBox.lines
+  .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 nodeManager.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
 nodeManager.nodes[1].BAK = -999;
 

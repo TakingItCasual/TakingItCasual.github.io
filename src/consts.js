@@ -25,12 +25,20 @@ const NUM = Object.freeze({
   get CHAR_WIDTH(){
     return this._CHAR_DIM_MULTI * 8;
   },
-  /** Pixel gap between lines and from node sides (minimum of 2) */
+  /** Text pixel gap between text lines and from node borders (minimum of 2) */
   CHAR_GAP: 3,
   /** Used for spacing lines apart */
   get LINE_HEIGHT(){
     return this.CHAR_HEIGHT + this.CHAR_GAP;
   },
+});
+
+/** Enum for directions */
+const DIR = Object.freeze({
+  LEFT: Symbol("LEFT"),
+  UP: Symbol("UP"),
+  RIGHT: Symbol("RIGHT"),
+  DOWN: Symbol("DOWN"),
 });
 
 /** Hex codes for various colors */

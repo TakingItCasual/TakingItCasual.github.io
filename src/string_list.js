@@ -9,50 +9,54 @@ class StringList{
     this.#maxLines = maxLines;
     this.#lineStrs = [""];
   }
-  strAdd(strI){
-    this.#lineStrs.splice(strI+1, 0, "");
+
+  lineAdd(lineI){
+    this.#lineStrs.splice(lineI+1, 0, "");
   }
-  strDel(strI){
-    if(strI >= this.#lineStrs.length) return;
-    if(this.#lineStrs.length <= 1) return; // Don't want an empty lineStr
-    this.#lineStrs.splice(strI, 1);
+  lineDel(lineI){
+    if(lineI >= this.#lineStrs.length) return;
+    if(this.#lineStrs.length <= 1) return; // Don't want an empty lineStrs
+    this.#lineStrs.splice(lineI, 1);
   }
-  strCount(){
+  lineCount(){
     return this.#lineStrs.length;
   }
-  strGet(strI){
-    if(strI >= this.#lineStrs.length) return "";
-    return this.#lineStrs[strI];
+
+  strGet(lineI){
+    if(lineI >= this.#lineStrs.length) return "";
+    return this.#lineStrs[lineI];
   }
-  strSet(strI, strValue){
-    if(strI >= this.#maxLines) return;
-    while(strI >= this.#lineStrs.length)
+  strSet(lineI, strValue){
+    if(lineI >= this.#maxLines) return;
+    while(lineI >= this.#lineStrs.length)
       this.#lineStrs.push(""); // Expand #lineStrs
-    // The substr crops the strValue to prevent text overflow
-    this.#lineStrs[strI] = strValue.substr(0, this.#lineW);
+    // The substring crops the strValue to prevent text overflow
+    this.#lineStrs[lineI] = strValue.substring(0, this.#lineW);
   }
-  strLen(strI){
-    if(strI >= this.#lineStrs.length) return 0;
-    return this.#lineStrs[strI].length;
+  strLen(lineI){
+    if(lineI >= this.#lineStrs.length) return 0;
+    return this.#lineStrs[lineI].length;
   }
-  strCut(strI, charI){ // Cuts string charI from end
-    if(strI >= this.#lineStrs.length) return "";
-    if(charI > this.#lineStrs[strI].length) return "";
-    let cutStr = this.#lineStrs[strI].substr(-charI);
-    this.#lineStrs[strI] = this.#lineStrs[strI].slice(0, -charI);
+  strCut(lineI, charI){ // Cuts string charI from end
+    if(lineI >= this.#lineStrs.length) return "";
+    if(charI > this.#lineStrs[lineI].length) return "";
+    let cutStr = this.#lineStrs[lineI].slice(-charI);
+    this.#lineStrs[lineI] = this.#lineStrs[lineI].slice(0, -charI);
     return cutStr;
   }
-  charAdd(strI, charI, charVar){
-    if(strI >= this.#lineStrs.length) return;
-    if(charI > this.#lineStrs[strI].length)
-      charI = this.#lineStrs[strI].length;
-    let str = this.#lineStrs[strI];
-    this.strSet(strI, str.substr(0, charI) + charVar + str.substr(charI));
+
+  charAdd(lineI, charI, charVar){
+    if(lineI >= this.#lineStrs.length) return;
+    if(charI > this.#lineStrs[lineI].length)
+      charI = this.#lineStrs[lineI].length;
+    let str = this.#lineStrs[lineI];
+    this.strSet(lineI,
+      str.substring(0, charI) + charVar + str.substring(charI));
   }
-  charDel(strI, charI){
-    if(strI >= this.#lineStrs.length) return;
-    if(charI > this.#lineStrs[strI].length) return;
-    let str = this.#lineStrs[strI];
-    this.strSet(strI, str.substr(0, charI-1) + str.substr(charI));
+  charDel(lineI, charI){
+    if(lineI >= this.#lineStrs.length) return;
+    if(charI > this.#lineStrs[lineI].length) return;
+    let str = this.#lineStrs[lineI];
+    this.strSet(lineI, str.substring(0, charI-1) + str.substring(charI));
   }
 }

@@ -3,9 +3,16 @@
 /** Handles user cursor and text selection/highlighting */
 class Selection{
   constructor(){
-    this.nodeI = null; // Index of ComputeNode being focused
-    this.cursor = {};
+    /** Index of ComputeNode being focused */
+    this.nodeI = null;
+    /** Position of cursor within focused codeBox */
+    this.cursor = {
+      _lineI: 0,
+      _charI: 0,
+    };
+    /** Holds time data/functions for scheduling cursor blinking */
     this.cursorBlink = { time: Date.now() };
+    /** Holds selection range data/functions */
     this.range = {
       start: { lineI: 0, charI: 0 },
       current: { lineI: 0, charI: 0 },
@@ -44,29 +51,40 @@ class Selection{
         ) return true;
         return false;
       },
-      lineSelected(lineI){
+      isLineSelected(lineI){
         if(this.isNull) return false;
         if(this.lowerLineI <= lineI && this.upperLineI >= lineI) return true;
         return false;
       },
     };
 
-    Object.defineProperty(this.cursorBlink, "reset", {
-      value: () => this.cursorBlink.time = Date.now(),
-    });
-    let blinkReset = this.cursorBlink.reset;
-    Object.defineProperty(this.cursor, "lineI", {
-      get: function() { return this._lineI },
-      set: function(val) {
-        this._lineI = val;
-        blinkReset();
+    // Don't know how to create objects with self-referencing, so set here
+    Object.defineProperties(this.cursorBlink, {
+      reset: {
+        value: () => { this.cursorBlink.time = Date.now() },
+      },
+      isActive: {
+        value: () => {
+          let timeRemainder = (Date.now() - this.cursorBlink.time) % 800;
+          return timeRemainder < 400;
+        },
       },
     });
-    Object.defineProperty(this.cursor, "charI", {
-      get: function() { return this._charI },
-      set: function(val) {
-        this._charI = val;
-        blinkReset();
+    let blinkReset = this.cursorBlink.reset;
+    Object.defineProperties(this.cursor, {
+      lineI: {
+        get: function() { return this._lineI },
+        set: function(val) {
+          this._lineI = val;
+          blinkReset();
+        },
+      },
+      charI: {
+        get: function() { return this._charI },
+        set: function(val) {
+          this._charI = val;
+          blinkReset();
+        },
       },
     });
   }
@@ -84,7 +102,7 @@ class NodeContainer{
     this.nodesW = nodeTypes[0].length; // Width of table of nodes
     this.nodesH = nodeTypes.length; // Height of table of nodes
 
-    /** Object reference for focused codeBox's lines */
+    /** Object reference for focused codeBox's string lines */
     this.nodeLines = null;
 
     this.select = new Selection(); // Passed to the currently focused node
@@ -128,7 +146,6 @@ class NodeContainer{
     }
 
     this.select.nodeI = _nodeI;
-    // Huzzah for object references
     this.nodeLines = this.nodes[_nodeI].mainTextBox.lines;
 
     this.#cursorToMouse(_nodeI, mPos);
@@ -136,38 +153,50 @@ class NodeContainer{
     this.select.cursorBlink.reset();
   }
   /** Right mouse button pressed down */
-  rmbDown(mPos, clipboardData){
+  async rmbDown(mPos){
     let _nodeI = this.#getMousedOverNodeI(mPos);
-    this.select.nodeI = this.nodeLines = null;
-    if(_nodeI === -1) return;
-    /**
+    if(_nodeI === -1 || _nodeI !== this.select.nodeI){
+      this.select.focusLost();
+      return;
+    }
+
     if(this.select.range.isNull){
-      let pastedStr = clipboardData.getData("text/plain").toUpperCase();
-      this.attemptPaste(pastedStr);
+      navigator.clipboard.readText()
+        .then(text => {
+          this.attemptPaste(text);
+        }).catch(err => {
+          console.error('Failed to read clipboard contents: ', err);
+        });
     }else{
       let cutStr = this.attemptCut();
-      if(cutStr !== null) clipboardData.setData("text/plain", cutStr);
+      if(cutStr === null) return;
+      navigator.clipboard.writeText(cutStr)
+        .catch(err => {
+          console.error('Failed to write clipboard contents: ', err);
+        });
     }
-    */
   }
+
+  /** Get pixel coordinates of node text box editable area top left corner */
   #nodeTopLeft(nodeI){
     let cornerX = this.nodes[nodeI].mainTextBox.x + NUM.CHAR_GAP;
     let cornerY = this.nodes[nodeI].mainTextBox.y + 2*NUM.CHAR_GAP +
       this.nodes[nodeI].mainTextBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
     return [cornerX, cornerY];
   }
+  /** Set selection cursor from mouse position */
   #cursorToMouse(nodeI, mPos){
     let cornerX = 0;
     let cornerY = 0;
     [cornerX, cornerY] = this.#nodeTopLeft(nodeI);
     this.cursor.lineI = Math.max(0, Math.min(
-      this.nodes[nodeI].mainTextBox.lines.strCount()-1,
+      this.nodes[nodeI].mainTextBox.lines.lineCount()-1,
       Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
     this.cursor.charI = Math.max(0, Math.min(
       this.nodes[nodeI].mainTextBox.lines.strLen(this.cursor.lineI),
       Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
   }
-  /** Returns index of moused over codeBox (-1 for failure) */
+  /** Get index of moused-over codeBox (-1 for failure) */
   #getMousedOverNodeI(mPos){
     let cornerX = 0;
     let cornerY = 0;
@@ -214,20 +243,20 @@ class NodeContainer{
       if(afterDel.lineCount >= NUM.NODE_HEIGHT) return;
 
       this.delSelection();
-    }else if(this.nodeLines.strCount() >= NUM.NODE_HEIGHT){
+    }else if(this.nodeLines.lineCount() >= NUM.NODE_HEIGHT){
       return;
     }
 
     let distToEndOfLine =
       this.nodeLines.strLen(this.cursor.lineI) - this.cursor.charI;
 
-    this.nodeLines.strAdd(this.cursor.lineI);
+    this.nodeLines.lineAdd(this.cursor.lineI);
     this.cursor.lineI += 1;
     this.cursor.charI = 0;
 
     if(distToEndOfLine > 0){
-      let strToMove = this.nodeLines.strCut(
-        this.cursor.lineI-1, distToEndOfLine);
+      let strToMove = this.nodeLines
+        .strCut(this.cursor.lineI-1, distToEndOfLine);
       this.nodeLines.strSet(this.cursor.lineI, strToMove);
     }
   }
@@ -251,7 +280,7 @@ class NodeContainer{
           this.nodeLines.strGet(this.cursor.lineI+1);
         this.nodeLines.strSet(this.cursor.lineI, combinedStr);
 
-        this.nodeLines.strDel(this.cursor.lineI+1);
+        this.nodeLines.lineDel(this.cursor.lineI+1);
       }
     }
   }
@@ -260,7 +289,7 @@ class NodeContainer{
       this.delSelection();
     }else if(this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)){
       this.nodeLines.charDel(this.cursor.lineI, this.cursor.charI+1);
-    }else if(this.cursor.lineI < this.nodeLines.strCount()-1){
+    }else if(this.cursor.lineI < this.nodeLines.lineCount()-1){
       if(
         this.nodeLines.strLen(this.cursor.lineI) +
         this.nodeLines.strLen(this.cursor.lineI+1) <=
@@ -271,21 +300,21 @@ class NodeContainer{
           this.nodeLines.strGet(this.cursor.lineI+1);
         this.nodeLines.strSet(this.cursor.lineI, combinedStr);
 
-        this.nodeLines.strDel(this.cursor.lineI+1);
+        this.nodeLines.lineDel(this.cursor.lineI+1);
       }
     }
   }
   delSelection(){
     if(this.#delSelectionInfo() !== null){
       let combinedStr =
-        this.nodeLines.strGet(this.select.range.lowerLineI).substr(
-          0, this.select.range.lowerCharI) +
-        this.nodeLines.strGet(this.select.range.upperLineI).substr(
-          this.select.range.upperCharI);
+        this.nodeLines.strGet(this.select.range.lowerLineI)
+          .substring(0, this.select.range.lowerCharI) +
+        this.nodeLines.strGet(this.select.range.upperLineI)
+          .substring(this.select.range.upperCharI);
       this.nodeLines.strSet(this.select.range.lowerLineI, combinedStr);
 
       for(let i=this.select.range.lineCount-1; i>0; i--){
-        this.nodeLines.strDel(this.select.range.lowerLineI+1);
+        this.nodeLines.lineDel(this.select.range.lowerLineI+1);
       }
 
       this.cursor.lineI = this.select.range.lowerLineI;
@@ -302,7 +331,7 @@ class NodeContainer{
       this.select.range.upperCharI;
     if(newLowerLineLen > NUM.NODE_WIDTH_MAIN) return null;
 
-    let newLineCount = this.nodeLines.strCount() -
+    let newLineCount = this.nodeLines.lineCount() -
       this.select.range.upperLineI + this.select.range.lowerLineI;
     return {
       lowerLineLen: newLowerLineLen,
@@ -310,16 +339,16 @@ class NodeContainer{
     };
   }
 
-  arrowKey(keyCode){
+  arrowKey(direction){
     this.select.range.initTo(0, 0);
-    if(keyCode === 0){ // Left
+    if(direction === DIR.LEFT){
       if(this.cursor.charI > 0){
         this.cursor.charI -= 1;
       }else if(this.cursor.lineI > 0){
         this.cursor.lineI -= 1;
         this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
       }
-    }else if(keyCode === 1){ // Up
+    }else if(direction === DIR.UP){
       if(this.cursor.lineI > 0){
         this.cursor.lineI -= 1;
         if(this.cursor.charI > this.nodeLines.strLen(this.cursor.lineI)){
@@ -328,15 +357,15 @@ class NodeContainer{
       }else{
         this.cursor.charI = 0;
       }
-    }else if(keyCode === 2){ // Right
+    }else if(direction === DIR.RIGHT){
       if(this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)){
         this.cursor.charI += 1;
-      }else if(this.cursor.lineI < this.nodeLines.strCount()-1){
+      }else if(this.cursor.lineI < this.nodeLines.lineCount()-1){
         this.cursor.lineI += 1;
         this.cursor.charI = 0;
       }
-    }else if(keyCode === 3){ // Down
-      if(this.cursor.lineI < this.nodeLines.strCount()-1){
+    }else if(direction === DIR.DOWN){
+      if(this.cursor.lineI < this.nodeLines.lineCount()-1){
         this.cursor.lineI += 1;
         if(this.cursor.charI > this.nodeLines.strLen(this.cursor.lineI)){
           this.cursor.charI = this.nodeLines.strLen(this.cursor.lineI);
@@ -349,28 +378,22 @@ class NodeContainer{
 
   attemptCopy(){
     if(this.select.nodeI === null) return null;
+    if(this.select.range.lineCount === 0) return null;
 
-    if(this.select.range.lineCount === 0){
-      return null;
-    }else if(this.select.range.lineCount === 1){
-      return this.nodeLines.strGet(
-        this.select.range.lowerLineI).substring(
-          this.select.range.lowerCharI,
-          this.select.range.upperCharI);
-    }else{
-      let strParts = [this.nodeLines.strGet(
-        this.select.range.lowerLineI).substr(
-          this.select.range.lowerCharI)];
-      for(let i=1; i<this.select.range.lineCount-1; i++){
-        strParts.push(this.nodeLines.strGet(
-          this.select.range.lowerLineI + i));
-      }
-      strParts.push(this.nodeLines.strGet(
-        this.select.range.upperLineI).substr(
-          0, this.select.range.upperCharI));
-
-      return strParts.join("\n");
+    if(this.select.range.lineCount === 1){
+      return this.nodeLines.strGet(this.select.range.lowerLineI)
+        .substring(this.select.range.lowerCharI, this.select.range.upperCharI);
     }
+
+    let strParts = [this.nodeLines.strGet(this.select.range.lowerLineI)
+      .substring(this.select.range.lowerCharI)];
+    for(let i=1; i<this.select.range.lineCount-1; i++){
+      strParts.push(this.nodeLines.strGet(this.select.range.lowerLineI + i));
+    }
+    strParts.push(this.nodeLines.strGet(this.select.range.upperLineI)
+      .substring(0, this.select.range.upperCharI));
+
+    return strParts.join("\n");
   }
   attemptCut(){
     let savedSelection = this.attemptCopy();
@@ -383,26 +406,30 @@ class NodeContainer{
   attemptPaste(clipboardStr){
     if(this.select.nodeI === null) return;
     if(!clipboardStr) return;
+    if(typeof clipboardStr !== "string") return;
 
     let pastedLines = clipboardStr.split(/\r?\n/);
-    for(let pastedLine of pastedLines){
-      if(!ALLOWED_CHARS.test(pastedLine)) return;
+    for(let i=0; i<pastedLines.length-1; i++){
+      pastedLines[i] = pastedLines[i].toUpperCase();
+      if(!ALLOWED_CHARS.test(pastedLines[i])) return;
     }
+    let zeroOrMoreSpaces = /^ *$/;
+    let lastEmpty = (zeroOrMoreSpaces.test(pastedLines[pastedLines.length-1]));
 
     let newCursorLineI = pastedLines.length-1; // Appended to later
     let newCursorCharI = null; // Set later
     if(this.select.range.isNull){
-      if(this.nodeLines.strCount() + pastedLines.length-1 > NUM.NODE_HEIGHT)
-        return;
+      if(this.nodeLines.lineCount() + pastedLines.length - (lastEmpty ? 2 : 1) >
+        NUM.NODE_HEIGHT) return;
 
-      pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI).substr(
-        0, this.cursor.charI) + pastedLines[0];
+      pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI)
+        .substring(0, this.cursor.charI) + pastedLines[0];
 
       newCursorLineI += this.cursor.lineI;
       newCursorCharI = pastedLines[pastedLines.length-1].length;
 
-      pastedLines[pastedLines.length-1] += this.nodeLines.strGet(
-        this.cursor.lineI).substr(this.cursor.charI);
+      pastedLines[pastedLines.length-1] += this.nodeLines
+        .strGet(this.cursor.lineI).substring(this.cursor.charI);
 
       for(let pastedLine of pastedLines){
         if(pastedLine.length > NUM.NODE_WIDTH_MAIN) return;
@@ -411,18 +438,18 @@ class NodeContainer{
       let afterDel = this.#delSelectionInfo();
 
       if(afterDel === null) return;
-      if(afterDel.lineCount + pastedLines.length-1 > NUM.NODE_HEIGHT) return;
+      if(afterDel.lineCount + pastedLines.length - (lastEmpty ? 2 : 1) >
+        NUM.NODE_HEIGHT) return;
 
-      pastedLines[0] = this.nodeLines.strGet(
-        this.select.range.lowerLineI).substr(
-        0, this.select.range.lowerCharI) + pastedLines[0];
+      pastedLines[0] = this.nodeLines.strGet(this.select.range.lowerLineI)
+        .substring(0, this.select.range.lowerCharI) + pastedLines[0];
 
       newCursorLineI += this.select.range.lowerLineI;
       newCursorCharI = pastedLines[pastedLines.length-1].length;
 
-      pastedLines[pastedLines.length-1] += this.nodeLines.strGet(
-        this.select.range.upperLineI).substr(
-        this.select.range.upperCharI);
+      pastedLines[pastedLines.length-1] += this.nodeLines
+        .strGet(this.select.range.upperLineI)
+        .substring(this.select.range.upperCharI);
 
       for(let pastedLine of pastedLines){
         if(pastedLine.length > NUM.NODE_WIDTH_MAIN) return;
@@ -430,8 +457,16 @@ class NodeContainer{
 
       this.delSelection();
     }
+    // If on last node line and last pastedLine is empty, remove empty line
+    if(lastEmpty && newCursorLineI === NUM.NODE_HEIGHT){
+      if(!zeroOrMoreSpaces.test(pastedLines[pastedLines.length-1])) return;
+      newCursorLineI -= 1;
+      pastedLines.splice(-1);
+      newCursorCharI = pastedLines[pastedLines.length-1].length;
+    }
+
     for(let i=0; i<pastedLines.length-1; i++)
-      this.nodeLines.strAdd(this.cursor.lineI);
+      this.nodeLines.lineAdd(this.cursor.lineI);
     for(let i=0; i<pastedLines.length; i++)
       this.nodeLines.strSet(this.cursor.lineI+i, pastedLines[i]);
 
@@ -441,7 +476,7 @@ class NodeContainer{
   selectAll(){
     this.select.range.start.lineI = this.select.range.start.charI = 0;
     this.cursor.lineI = this.select.range.current.lineI =
-      this.nodeLines.strCount()-1;
+      this.nodeLines.lineCount()-1;
     this.cursor.charI = this.select.range.current.charI =
       this.nodeLines.strLen(this.cursor.lineI);
   }

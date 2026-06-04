@@ -97,7 +97,7 @@ class BoxCode extends BoxText{
       let selectStart = -1;
       let selectEnd = -1;
       // Draws bar under selected text
-      if(select !== null && select.range.lineSelected(i)){
+      if(select !== null && select.range.isLineSelected(i)){
         selectStart = select.range.lowerLineI >= i ?
           select.range.lowerCharI : 0;
         selectEnd = select.range.upperLineI <= i ?
@@ -117,12 +117,9 @@ class BoxCode extends BoxText{
     }
 
     // Blinking thingy
-    if(select !== null){
-      let blinkTime = (Date.now() - select.cursorBlink.time) % 800;
-      if(blinkTime < 400){ // Blink every 0.8s
-        this.drawBar(COLOR.BAR.CURSOR,
-          select.cursor.lineI, select.cursor.charI, select.cursor.charI+1);
-      }
+    if(select !== null && select.cursorBlink.isActive()){
+      this.drawBar(COLOR.BAR.CURSOR,
+        select.cursor.lineI, select.cursor.charI, select.cursor.charI+1);
     }
   }
   /** Draws text line, using seperate coloring for comments/selection */
