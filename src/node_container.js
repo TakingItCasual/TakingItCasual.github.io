@@ -1,7 +1,7 @@
 "use strict";
 
 /** Handles user cursor and text selection/highlighting */
-class Selection{
+class editorSelection{
   constructor(){
     /** Index of ComputeNode being focused */
     this.nodeI = null;
@@ -102,10 +102,9 @@ class NodeContainer{
     this.nodesW = nodeTypes[0].length; // Width of table of nodes
     this.nodesH = nodeTypes.length; // Height of table of nodes
 
+    this.select = new editorSelection();
     /** Object reference for focused codeBox's string lines */
     this.nodeLines = null;
-
-    this.select = new Selection(); // Passed to the currently focused node
     /** Object reference for selection cursor */
     this.cursor = this.select.cursor;
 

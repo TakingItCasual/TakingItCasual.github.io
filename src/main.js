@@ -53,33 +53,24 @@ canvas.addEventListener("keydown", function(evt) {
     switch(evt.key){
       case "Enter":
         nodeManager.newLine();
-        break;
-      case "Backspace":
+      break; case "Backspace":
         nodeManager.bakChar();
-        break;
-      case "Delete":
+      break; case "Delete":
         nodeManager.delChar();
-        break;
-      case "ArrowLeft":
+      break; case "ArrowLeft":
         nodeManager.arrowKey(DIR.LEFT);
-        break;
-      case "ArrowUp":
+      break; case "ArrowUp":
         nodeManager.arrowKey(DIR.UP);
-        break;
-      case "ArrowRight":
+      break; case "ArrowRight":
         nodeManager.arrowKey(DIR.RIGHT);
-        break;
-      case "ArrowDown":
+      break; case "ArrowDown":
         nodeManager.arrowKey(DIR.DOWN);
-        break;
-      case "Escape":
+      break; case "Escape":
         nodeManager.select.focusLost();
-        break;
-      default:
+      break; default:
         nodeManager.addChar(evt.key);
-        break;
     }
-  }else if(evt.key === "A" || evt.key === "a"){
+  }else if(evt.key.toUpperCase() === "A"){
     nodeManager.selectAll();
   }
 });
@@ -87,16 +78,16 @@ canvas.addEventListener("blur", function(evt) {
   nodeManager.select.focusLost();
 });
 
-// Handle copying/cutting/pasting into code boxes
+// Handle copying/cutting/pasting for code boxes
 window.addEventListener("copy", function(evt){
-  let copiedStr = nodeManager.attemptCopy()
+  let copiedStr = nodeManager.attemptCopy();
   if(copiedStr !== null)
     evt.clipboardData.setData("text/plain", copiedStr);
 
   evt.preventDefault();
 });
 window.addEventListener("cut", function(evt){
-  let cutStr = nodeManager.attemptCut()
+  let cutStr = nodeManager.attemptCut();
   if(cutStr !== null)
     evt.clipboardData.setData("text/plain", cutStr);
 
@@ -130,7 +121,7 @@ for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
 nodeManager.nodes[1].mainTextBox.lines
   .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
 nodeManager.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
-nodeManager.nodes[1].BAK = -999;
+nodeManager.nodes[1].BAK = NUM.ACC_MIN;
 
 nodeManager.nodes[2].memoryBox.lines.strSet(0, "254");
 nodeManager.nodes[2].memoryBox.lines.strSet(1, "498");

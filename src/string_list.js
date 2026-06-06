@@ -1,3 +1,5 @@
+"use strict";
+
 /** Contains and manages list of strings */
 class StringList{
   #lineW;

@@ -125,7 +125,7 @@ class ComputeNode extends _BaseNode{
       lineW: this.mainTextBox.lineW,
       maxLines: this.mainTextBox.maxLines,
     });
-    // Overwrite default main text box with ref to codeBox
+    // Overwrite default main text box with object reference to codeBox
     this.mainTextBox = this.codeBox;
 
     // Expand the five info boxes next to the codeBox to match its height

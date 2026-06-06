@@ -92,49 +92,55 @@ class BoxCode extends BoxText{
 
     // Draws bars under selected text, as well as the text itself
     for(let i=0; i<this.maxLines; i++){
-      if(!this.lines.strGet(i)) continue; // String is empty
-
       let selectStart = -1;
       let selectEnd = -1;
+      let cursorPos = -1;
       // Draws bar under selected text
-      if(select !== null && select.range.isLineSelected(i)){
-        selectStart = select.range.lowerLineI >= i ?
-          select.range.lowerCharI : 0;
-        selectEnd = select.range.upperLineI <= i ?
-          select.range.upperCharI : this.lines.strLen(i);
-
-        this.drawBar(COLOR.BAR.SELECTED, i, selectStart, selectEnd);
+      if(select !== null){
+        if(select.range.isLineSelected(i)){
+          selectStart = select.range.lowerLineI >= i ?
+            select.range.lowerCharI : 0;
+          selectEnd = select.range.upperLineI <= i ?
+            select.range.upperCharI : this.lines.strLen(i);
+          if(this.lines.strGet(i))
+            this.drawBar(COLOR.BAR.SELECTED, i, selectStart, selectEnd);
+        }
+        if(select.cursor.lineI === i && select.cursorBlink.isActive()){
+          cursorPos = select.cursor.charI;
+          // Blinking thingy
+          this.drawBar(COLOR.BAR.CURSOR,
+            i, select.cursor.charI, select.cursor.charI+1);
+        }
       }
 
+      if(!this.lines.strGet(i)) continue; // String is empty
       let commentStart = this.lines.strGet(i).indexOf("#");
       if(this.activeLine === i){
         this.drawStr(COLOR.BLACK, i);
-      }else if(commentStart === -1 && selectStart === -1){
+      }else if(commentStart === -1 && selectStart === -1 && cursorPos === -1){
         this.drawStr(COLOR.LIGHT_GRAY, i);
       }else{
-        this.drawSplitLine(i, commentStart, selectStart, selectEnd);
+        this.drawSplitLine(i, commentStart, selectStart, selectEnd, cursorPos);
       }
     }
-
-    // Blinking thingy
-    if(select !== null && select.cursorBlink.isActive()){
-      this.drawBar(COLOR.BAR.CURSOR,
-        select.cursor.lineI, select.cursor.charI, select.cursor.charI+1);
-    }
   }
-  /** Draws text line, using seperate coloring for comments/selection */
-  drawSplitLine(lineI, commentStart, selectStart, selectEnd){
+  /** Draws text line, using seperate coloring for comments/selection/cursor */
+  drawSplitLine(lineI, commentStart, selectStart, selectEnd, cursorPos){
     let strParts = []; // List of lists of string indexes and colors
 
-    if(Math.max(commentStart, selectStart) > 0)
+    if(
+      (commentStart > 0 || selectStart > 0) ||
+      (commentStart === -1 && selectStart === -1)
+    ){
       strParts.push([0, COLOR.LIGHT_GRAY]);
-    if(commentStart !== -1 && selectStart === -1){
+    }
+    if(commentStart > -1 && selectStart === -1){
       strParts.push([commentStart, COLOR.TEXT.COMMENT]);
-    }else if(commentStart === -1 && selectStart !== -1){
+    }else if(commentStart === -1 && selectStart > -1){
       strParts.push([selectStart, COLOR.WHITE]);
       if(selectEnd < this.lines.strLen(lineI))
         strParts.push([selectEnd, COLOR.LIGHT_GRAY]);
-    }else{
+    }else if(commentStart > -1 && selectStart > -1){
       if(commentStart <= selectStart){
         if(commentStart < selectStart)
           strParts.push([commentStart, COLOR.TEXT.COMMENT]);
@@ -153,8 +159,19 @@ class BoxCode extends BoxText{
         strParts.push([commentStart, COLOR.TEXT.COMMENT]);
       }
     }
-
     strParts.push([this.lines.strLen(lineI), null]);
+
+    if(cursorPos > -1){
+      for(let i=0; i<strParts.length-1; i++){
+        if(cursorPos < strParts[i+1][0] && cursorPos >= strParts[i][0]){
+          let tempColor = strParts[i][1];
+          strParts.splice(i+1, 0, [cursorPos, COLOR.BLACK]);
+          strParts.splice(i+2, 0, [cursorPos+1, tempColor]);
+          break;
+        }
+      }
+    }
+
     for(let i=0; i<strParts.length-1; i++){
       ctx.fillStyle = strParts[i][1];
       ctx.fillText(
