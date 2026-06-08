@@ -1,7 +1,7 @@
 "use strict";
 
 /** Handles user cursor and text selection/highlighting */
-class editorSelection{
+class EditorSelection{
   constructor(){
     /** Index of ComputeNode being focused */
     this.nodeI = null;
@@ -45,16 +45,14 @@ class editorSelection{
         return this.upperLineI - this.lowerLineI + 1;
       },
       get isNull(){
-        if(
+        return (
           this.start.lineI === this.current.lineI &&
           this.start.charI === this.current.charI
-        ) return true;
-        return false;
+        );
       },
       isLineSelected(lineI){
         if(this.isNull) return false;
-        if(this.lowerLineI <= lineI && this.upperLineI >= lineI) return true;
-        return false;
+        return lineI.within(this.lowerLineI, true, this.upperLineI, true);
       },
     };
 
@@ -102,7 +100,7 @@ class NodeContainer{
     this.nodesW = nodeTypes[0].length; // Width of table of nodes
     this.nodesH = nodeTypes.length; // Height of table of nodes
 
-    this.select = new editorSelection();
+    this.select = new EditorSelection();
     /** Object reference for focused codeBox's string lines */
     this.nodeLines = null;
     /** Object reference for selection cursor */
@@ -176,39 +174,43 @@ class NodeContainer{
     }
   }
 
-  /** Get pixel coordinates of node text box editable area top left corner */
+  /** Get pixel coordinates of node main text box text area top left corner */
   #nodeTopLeft(nodeI){
-    let cornerX = this.nodes[nodeI].mainTextBox.x + NUM.CHAR_GAP;
-    let cornerY = this.nodes[nodeI].mainTextBox.y + 2*NUM.CHAR_GAP +
+    let topLeftX = this.nodes[nodeI].mainTextBox.x + NUM.CHAR_GAP;
+    let topLeftY = this.nodes[nodeI].mainTextBox.y + 2*NUM.CHAR_GAP +
       this.nodes[nodeI].mainTextBox.offsetY - Math.floor(NUM.CHAR_GAP/2);
-    return [cornerX, cornerY];
+    return [topLeftX, topLeftY];
   }
   /** Set selection cursor from mouse position */
   #cursorToMouse(nodeI, mPos){
-    let cornerX = 0;
-    let cornerY = 0;
-    [cornerX, cornerY] = this.#nodeTopLeft(nodeI);
+    let topLeftX = 0;
+    let topLeftY = 0;
+    [topLeftX, topLeftY] = this.#nodeTopLeft(nodeI);
     this.cursor.lineI = Math.max(0, Math.min(
       this.nodes[nodeI].mainTextBox.lines.lineCount()-1,
-      Math.floor((mPos.y-cornerY)/NUM.LINE_HEIGHT)));
+      Math.floor((mPos.y-topLeftY)/NUM.LINE_HEIGHT)));
     this.cursor.charI = Math.max(0, Math.min(
       this.nodes[nodeI].mainTextBox.lines.strLen(this.cursor.lineI),
-      Math.floor((mPos.x-cornerX)/NUM.CHAR_WIDTH)));
+      Math.floor((mPos.x-topLeftX)/NUM.CHAR_WIDTH)));
   }
-  /** Get index of moused-over codeBox (-1 for failure) */
+  /** Get index of moused-over codeBox (-1 if N/A or for executing node) */
   #getMousedOverNodeI(mPos){
-    let cornerX = 0;
-    let cornerY = 0;
+    let topLeftX = 0;
+    let topLeftY = 0;
+    let bottomRightX = 0;
+    let bottomRightY = 0;
     for(let i=0; i<this.nodes.length; i++){
       // codeBox only exists within computeNodes
       if(this.nodes[i].nodeType !== 1) continue;
+      // Can't edit text in executing codeBox
+      if(this.nodes[i].codeBox.activeLine !== null) continue;
 
-      [cornerX, cornerY] = this.#nodeTopLeft(i);
+      [topLeftX, topLeftY] = this.#nodeTopLeft(i);
+      bottomRightX = topLeftX + (NUM.NODE_WIDTH_MAIN+1)*NUM.CHAR_WIDTH;
+      bottomRightY = topLeftY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT;
       if(
-        mPos.x >= cornerX &&
-        mPos.x < cornerX + (NUM.NODE_WIDTH_MAIN+1)*NUM.CHAR_WIDTH &&
-        mPos.y >= cornerY &&
-        mPos.y < cornerY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT
+        mPos.x.within(topLeftX, true, bottomRightX, false) &&
+        mPos.y.within(topLeftY, true, bottomRightY, false)
       ){
         return i;
       }
@@ -217,7 +219,9 @@ class NodeContainer{
   }
 
   addChar(char){
+    if(this.select.nodeI === null) return;
     if(char.length !== 1) return;
+
     let _char = char.toUpperCase();
     if(!ALLOWED_CHARS.test(_char)) return;
 
@@ -235,6 +239,8 @@ class NodeContainer{
     this.cursor.charI += 1;
   }
   newLine(){
+    if(this.select.nodeI === null) return;
+
     if(!this.select.range.isNull){
       let afterDel = this.#delSelectionInfo();
 
@@ -260,6 +266,8 @@ class NodeContainer{
     }
   }
   bakChar(){
+    if(this.select.nodeI === null) return;
+
     if(!this.select.range.isNull){
       this.delSelection();
     }else if(this.cursor.charI > 0){
@@ -284,6 +292,8 @@ class NodeContainer{
     }
   }
   delChar(){
+    if(this.select.nodeI === null) return;
+
     if(!this.select.range.isNull){
       this.delSelection();
     }else if(this.cursor.charI < this.nodeLines.strLen(this.cursor.lineI)){
@@ -304,22 +314,22 @@ class NodeContainer{
     }
   }
   delSelection(){
-    if(this.#delSelectionInfo() !== null){
-      let combinedStr =
-        this.nodeLines.strGet(this.select.range.lowerLineI)
-          .substring(0, this.select.range.lowerCharI) +
-        this.nodeLines.strGet(this.select.range.upperLineI)
-          .substring(this.select.range.upperCharI);
-      this.nodeLines.strSet(this.select.range.lowerLineI, combinedStr);
+    if(this.#delSelectionInfo() === null) return;
 
-      for(let i=this.select.range.lineCount-1; i>0; i--){
-        this.nodeLines.lineDel(this.select.range.lowerLineI+1);
-      }
+    let combinedStr =
+      this.nodeLines.strGet(this.select.range.lowerLineI)
+        .substring(0, this.select.range.lowerCharI) +
+      this.nodeLines.strGet(this.select.range.upperLineI)
+        .substring(this.select.range.upperCharI);
+    this.nodeLines.strSet(this.select.range.lowerLineI, combinedStr);
 
-      this.cursor.lineI = this.select.range.lowerLineI;
-      this.cursor.charI = this.select.range.lowerCharI;
-      this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
+    for(let i=this.select.range.lineCount-1; i>0; i--){
+      this.nodeLines.lineDel(this.select.range.lowerLineI+1);
     }
+
+    this.cursor.lineI = this.select.range.lowerLineI;
+    this.cursor.charI = this.select.range.lowerCharI;
+    this.select.range.initTo(this.cursor.lineI, this.cursor.charI);
   }
   #delSelectionInfo(){
     if(this.select.range.isNull) return null;
@@ -339,6 +349,8 @@ class NodeContainer{
   }
 
   arrowKey(direction){
+    if(this.select.nodeI === null) return;
+
     this.select.range.initTo(0, 0);
     if(direction === DIR.LEFT){
       if(this.cursor.charI > 0){
@@ -473,6 +485,8 @@ class NodeContainer{
     this.cursor.charI = newCursorCharI;
   }
   selectAll(){
+    if(this.select.nodeI === null) return;
+
     this.select.range.start.lineI = this.select.range.start.charI = 0;
     this.cursor.lineI = this.select.range.current.lineI =
       this.nodeLines.lineCount()-1;

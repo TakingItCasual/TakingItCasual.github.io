@@ -7,11 +7,11 @@ class Box{
     this.y = y + (isBorderFull ? 1 : 0); // y-pos of box's top left (px)
     this.w = w - (isBorderFull ? 2 : 0); // Box's width (px)
     this.h = h - (isBorderFull ? 2 : 0); // Box's height (px)
-    this.isBorderFull = isBorderFull; // Whether box border is 1px or 3px
+    this.isBorderFull = isBorderFull; // Whether box border is 1px or 3px thick
   }
 
-  drawBox(color){
-    ctx.strokeStyle = color;
+  drawBox(boxColor){
+    ctx.strokeStyle = boxColor;
     ctx.lineWidth = this.isBorderFull ? 3 : 1;
     ctx.strokeRect(this.x-0.5, this.y-0.5, this.w, this.h);
     ctx.lineWidth = 1;
@@ -39,15 +39,16 @@ class BoxText extends Box{
     this.lines = new StringList(this.lineW, this.maxLines);
   }
 
-  /** Draws one line from lineStrs to canvas (extraY used for "FAILURE") */
-  drawStr(textColor, lineI, extraY=0){
+  /** Draws one line from lineStrs to canvas */
+  drawStr(textColor, lineI, extraY=0, startChar=0, endChar=-1){
+    if(endChar === -1) endChar = this.lines.strLen(lineI);
     let offsetX = 0;
     if(this.isTextCentered)
       offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
     ctx.fillStyle = textColor;
     ctx.fillText(
-      this.lines.strGet(lineI),
-      this.x+NUM.CHAR_GAP + offsetX,
+      this.lines.strGet(lineI).substring(startChar, endChar),
+      this.x+NUM.CHAR_GAP + offsetX + startChar*NUM.CHAR_WIDTH,
       this.y+NUM.CHAR_GAP + (lineI+1)*NUM.LINE_HEIGHT + this.offsetY+extraY
     );
   }
@@ -80,34 +81,24 @@ class BoxCode extends BoxText{
     this.executable = true; // True if the current line was just reached
   }
 
-  /** Draws text, executing line or selected text bars, and blinking thingy */
+  /** Draws text, executing line or selected text bars, and cursor */
   drawAllLinesAndBars(select){
-    // Draws bar under currently executing line
-    if(this.activeLine !== null){
-      this.drawBar(
-        (this.executable ? COLOR.BAR.RUNNING : COLOR.BAR.WAITING),
-        this.activeLine, 0, this.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-2
-      );
-    }
-
-    // Draws bars under selected text, as well as the text itself
     for(let i=0; i<this.maxLines; i++){
       let selectStart = -1;
       let selectEnd = -1;
       let cursorPos = -1;
-      // Draws bar under selected text
       if(select !== null){
-        if(select.range.isLineSelected(i)){
+        if(select.range.isLineSelected(i) && this.lines.strGet(i)){
           selectStart = select.range.lowerLineI >= i ?
             select.range.lowerCharI : 0;
           selectEnd = select.range.upperLineI <= i ?
             select.range.upperCharI : this.lines.strLen(i);
-          if(this.lines.strGet(i))
-            this.drawBar(COLOR.BAR.SELECTED, i, selectStart, selectEnd);
+          // Draws bar under selected text
+          this.drawBar(COLOR.BAR.SELECTED, i, selectStart, selectEnd);
         }
         if(select.cursor.lineI === i && select.cursorBlink.isActive()){
           cursorPos = select.cursor.charI;
-          // Blinking thingy
+          // Draws blinking thingy
           this.drawBar(COLOR.BAR.CURSOR,
             i, select.cursor.charI, select.cursor.charI+1);
         }
@@ -116,6 +107,11 @@ class BoxCode extends BoxText{
       if(!this.lines.strGet(i)) continue; // String is empty
       let commentStart = this.lines.strGet(i).indexOf("#");
       if(this.activeLine === i){
+        // Draws bar under currently executing line
+        this.drawBar(
+          (this.executable ? COLOR.BAR.RUNNING : COLOR.BAR.WAITING),
+          i, 0, this.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-2
+        );
         this.drawStr(COLOR.BLACK, i);
       }else if(commentStart === -1 && selectStart === -1 && cursorPos === -1){
         this.drawStr(COLOR.LIGHT_GRAY, i);
@@ -128,12 +124,8 @@ class BoxCode extends BoxText{
   drawSplitLine(lineI, commentStart, selectStart, selectEnd, cursorPos){
     let strParts = []; // List of lists of string indexes and colors
 
-    if(
-      (commentStart > 0 || selectStart > 0) ||
-      (commentStart === -1 && selectStart === -1)
-    ){
+    if(commentStart !== 0 && selectStart !== 0)
       strParts.push([0, COLOR.LIGHT_GRAY]);
-    }
     if(commentStart > -1 && selectStart === -1){
       strParts.push([commentStart, COLOR.TEXT.COMMENT]);
     }else if(commentStart === -1 && selectStart > -1){
@@ -147,7 +139,7 @@ class BoxCode extends BoxText{
         strParts.push([selectStart, COLOR.LIGHT_GRAY]);
         if(selectEnd < this.lines.strLen(lineI))
           strParts.push([selectEnd, COLOR.TEXT.COMMENT]);
-      }else if(selectStart < commentStart && commentStart < selectEnd){
+      }else if(commentStart.within(selectStart, false, selectEnd, false)){
         strParts.push([selectStart, COLOR.WHITE]);
         strParts.push([commentStart, COLOR.LIGHT_GRAY]);
         if(selectEnd < this.lines.strLen(lineI))
@@ -163,22 +155,17 @@ class BoxCode extends BoxText{
 
     if(cursorPos > -1){
       for(let i=0; i<strParts.length-1; i++){
-        if(cursorPos < strParts[i+1][0] && cursorPos >= strParts[i][0]){
-          let tempColor = strParts[i][1];
-          strParts.splice(i+1, 0, [cursorPos, COLOR.BLACK]);
-          strParts.splice(i+2, 0, [cursorPos+1, tempColor]);
-          break;
-        }
+        if(cursorPos >= strParts[i+1][0]) continue;
+
+        let prevColor = strParts[i][1];
+        let hitAdjust = cursorPos === strParts[i][0] ? 1 : 0;
+        strParts.splice(i+1-hitAdjust, hitAdjust, [cursorPos, COLOR.BLACK]);
+        strParts.splice(i+2-hitAdjust, 0, [cursorPos+1, prevColor]);
+        break;
       }
     }
 
-    for(let i=0; i<strParts.length-1; i++){
-      ctx.fillStyle = strParts[i][1];
-      ctx.fillText(
-        this.lines.strGet(lineI).substring(strParts[i][0], strParts[i+1][0]),
-        this.x+NUM.CHAR_GAP + NUM.CHAR_WIDTH*strParts[i][0],
-        this.y+NUM.CHAR_GAP + (lineI+1)*NUM.LINE_HEIGHT + this.offsetY
-      );
-    }
+    for(let i=0; i<strParts.length-1; i++)
+      this.drawStr(strParts[i][1], lineI, 0, strParts[i][0], strParts[i+1][0]);
   }
 }

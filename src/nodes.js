@@ -34,6 +34,9 @@ class _BaseNode{
     if(this.connections["right"] !== null){}
     if(this.connections["down"] !== null){}
   }
+  drawNode(select){
+    this.nodeBox.drawBox(COLOR.LIGHT_GRAY);
+  }
 }
 
 /** Red "Communication Error" node (no functionality) */
@@ -95,7 +98,7 @@ class CorruptNode extends _BaseNode{
     });
   }
 
-  drawNode(){
+  drawNode(select){
     this.nodeBox.drawBox(COLOR.CORRUPT_RED);
 
     this.mainTextBox.drawBox(COLOR.CORRUPT_RED);
@@ -275,7 +278,7 @@ class StackMemNode extends _BaseNode{
     });
   }
 
-  drawNode(){
+  drawNode(select){
     this.nodeBox.drawBox(COLOR.LIGHT_GRAY);
 
     // Draws the description box ("STACK MEMORY NODE")

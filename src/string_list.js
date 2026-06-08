@@ -30,8 +30,9 @@ class StringList{
   }
   strSet(lineI, strValue){
     if(lineI >= this.#maxLines) return;
+    // Expand #lineStrs until lineI
     while(lineI >= this.#lineStrs.length)
-      this.#lineStrs.push(""); // Expand #lineStrs
+      this.#lineStrs.push("");
     // The substring crops the strValue to prevent text overflow
     this.#lineStrs[lineI] = strValue.substring(0, this.#lineW);
   }
