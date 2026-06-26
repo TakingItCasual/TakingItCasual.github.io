@@ -15,8 +15,8 @@ class _BaseNode{
     this.mainTextBox = new BoxText({
       x: x + 2,
       y: y + 2,
-      lineW: NUM.NODE_WIDTH_MAIN+1,
-      maxLines: NUM.NODE_HEIGHT,
+      boxCharW: NUM.NODE_WIDTH_MAIN+1,
+      boxCharH: NUM.NODE_HEIGHT,
       isTextCentered: isMainTextCentered,
     });
     this.nodeBox = new Box({
@@ -125,8 +125,8 @@ class ComputeNode extends _BaseNode{
     this.codeBox = new BoxCode({
       x: this.mainTextBox.x,
       y: this.mainTextBox.y,
-      lineW: this.mainTextBox.lineW,
-      maxLines: this.mainTextBox.maxLines,
+      boxCharW: this.mainTextBox.boxCharW,
+      boxCharH: this.mainTextBox.boxCharH,
     });
     // Overwrite default main text box with object reference to codeBox
     this.mainTextBox = this.codeBox;
@@ -148,8 +148,8 @@ class ComputeNode extends _BaseNode{
     this.accBox = new BoxText({
       x: sideX,
       y: y + 2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: 2,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: 2,
       extraH: expandCalc(0),
       isTextCentered: true,
     });
@@ -160,8 +160,8 @@ class ComputeNode extends _BaseNode{
     this.bakBox = new BoxText({
       x: sideX,
       y: this.accBox.y+this.accBox.h + 2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: 2,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: 2,
       extraH: expandCalc(1),
       isTextCentered: true,
     });
@@ -172,8 +172,8 @@ class ComputeNode extends _BaseNode{
     this.lastBox = new BoxText({
       x: sideX,
       y: this.bakBox.y+this.bakBox.h + 2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: 2,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: 2,
       extraH: expandCalc(2),
       isTextCentered: true,
     });
@@ -184,8 +184,8 @@ class ComputeNode extends _BaseNode{
     this.modeBox = new BoxText({
       x: sideX,
       y: this.lastBox.y+this.lastBox.h + 2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: 2,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: 2,
       extraH: expandCalc(3),
       isTextCentered: true,
     });
@@ -196,8 +196,8 @@ class ComputeNode extends _BaseNode{
     this.idleBox = new BoxText({
       x: sideX,
       y: this.modeBox.y+this.modeBox.h + 2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: 2,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: 2,
       extraH: expandCalc(4),
       isTextCentered: true,
     });
@@ -222,7 +222,7 @@ class ComputeNode extends _BaseNode{
     this.bakBox.drawBox(COLOR.LIGHT_GRAY);
     this.bakBox.drawStr(COLOR.TEXT.DARKER, 0);
     this.bakBox.lines.strSet(1,
-      this.BAK.toString().length + 2 <= this.bakBox.lineW ?
+      this.BAK.toString().length + 2 <= this.bakBox.boxCharW ?
         "(" + this.BAK.toString() + ")" :
         this.BAK.toString());
     this.bakBox.drawStr(COLOR.LIGHT_GRAY, 1);
@@ -272,8 +272,8 @@ class StackMemNode extends _BaseNode{
     this.memoryBox = new BoxText({
       x: x+this.mainTextBox.w+4,
       y: y+2,
-      lineW: NUM.NODE_WIDTH_SIDE,
-      maxLines: NUM.NODE_HEIGHT,
+      boxCharW: NUM.NODE_WIDTH_SIDE,
+      boxCharH: NUM.NODE_HEIGHT,
       isTextCentered: true,
     });
   }
@@ -289,11 +289,11 @@ class StackMemNode extends _BaseNode{
 
     this.memoryBox.drawBox(COLOR.LIGHT_GRAY);
     // Draws each memory entry value
-    for(let i=0; i<NUM.NODE_HEIGHT; i++){
+    for(let i=0; i<this.memoryBox.boxCharH; i++){
       // Draws colored bar under newest entry
       if(this.memoryBox.lines.strGet(i) && !this.memoryBox.lines.strGet(i+1))
         this.memoryBox.drawBar(COLOR.BAR.MEM_RED,
-          i, 0, this.memoryBox.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-1);
+          i, 0, this.memoryBox.boxCharW, NUM.CHAR_GAP, NUM.CHAR_GAP-1);
       this.memoryBox.drawStr(COLOR.LIGHT_GRAY, i);
       // No newer entries if the next line is empty
       if(!this.memoryBox.lines.strGet(i+1)) break;

@@ -10,8 +10,23 @@ let nodeManager = new NodeContainer([
   [1, 2, 0, 1]
 ]);
 
+for(let i=0; i<2; i++){
+  for(let i2=0; i2<NUM.NODE_HEIGHT-1; i2++)
+    nodeManager.nodes[i].mainTextBox.lines
+      .strSet(i2, "testing " + (i2+NUM.NODE_HEIGHT*i));
+  nodeManager.nodes[i].mainTextBox.lines
+    .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
+}
+
+nodeManager.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
+nodeManager.nodes[1].BAK = NUM.ACC_MIN;
+
+nodeManager.nodes[2].memoryBox.lines.strSet(0, "254");
+nodeManager.nodes[2].memoryBox.lines.strSet(1, "498");
+nodeManager.nodes[2].memoryBox.lines.strSet(2, "782");
+
 // Source: https://stackoverflow.com/a/17130415
-function getMousePos(canvas, evt) {
+function getMousePos(evt) {
   let rect = canvas.getBoundingClientRect();
   let scaleX = canvas.width / rect.width;
   let scaleY = canvas.height / rect.height;
@@ -22,12 +37,12 @@ function getMousePos(canvas, evt) {
   };
 }
 
-let mPos = { x: 0, y: 0 }; // Mouse position
 canvas.addEventListener("mousemove", function(evt) {
-  mPos = getMousePos(canvas, evt);
+  let mPos = getMousePos(evt);
   if(evt.buttons % 2 === 1) nodeManager.lmbDrag(mPos);
 });
 canvas.addEventListener("mousedown", async function(evt) {
+  let mPos = getMousePos(evt);
   if(evt.button === 0){
     nodeManager.lmbDown(mPos);
   }else if(evt.button === 2){
@@ -108,24 +123,6 @@ canvas.addEventListener("contextmenu", function(evt) {
 canvas.addEventListener("dragstart", function(evt) {
   evt.preventDefault();
 });
-
-for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  nodeManager.nodes[0].mainTextBox.lines
-    .strSet(i, "testing " + i);
-nodeManager.nodes[0].mainTextBox.lines
-  .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
-
-for(let i=0; i<NUM.NODE_HEIGHT-1; i++)
-  nodeManager.nodes[1].mainTextBox.lines
-    .strSet(i, "testing " + (i+NUM.NODE_HEIGHT-1));
-nodeManager.nodes[1].mainTextBox.lines
-  .strSet(NUM.NODE_HEIGHT-1, "1: mov r#ght right");
-nodeManager.nodes[1].codeBox.activeLine = NUM.NODE_HEIGHT-1;
-nodeManager.nodes[1].BAK = NUM.ACC_MIN;
-
-nodeManager.nodes[2].memoryBox.lines.strSet(0, "254");
-nodeManager.nodes[2].memoryBox.lines.strSet(1, "498");
-nodeManager.nodes[2].memoryBox.lines.strSet(2, "782");
 
 function gameLoop() {
   ctx.beginPath();

@@ -21,30 +21,36 @@ class Box{
 /** Can draw text and bars, dimensions set relative to font dimensions */
 class BoxText extends Box{
   constructor({
-    x, y, lineW, maxLines, extraH=0, isTextCentered=false, isBorderFull=false
+    x,
+    y,
+    boxCharW,
+    boxCharH,
+    extraH=0,
+    isTextCentered=false,
+    isBorderFull=false,
   }){
     super({
       x: x,
       y: y,
-      w: lineW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
-      h: maxLines*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
+      w: boxCharW*NUM.CHAR_WIDTH + NUM.CHAR_GAP*2,
+      h: boxCharH*NUM.LINE_HEIGHT + 3*NUM.CHAR_GAP + 1 + extraH,
       isBorderFull: isBorderFull,
     });
-    this.lineW = lineW; // Width of the box in terms of characters
-    this.maxLines = maxLines; // Maximum number of string lines
+    this.boxCharW = boxCharW; // Width of the box in terms of characters
+    this.boxCharH = boxCharH; // Maximum number of string lines
     this.offsetY = Math.floor(extraH/2); // Y-padding for text lines (px)
     /** If true, text is centered within box's width */
     this.isTextCentered = isTextCentered;
     /** List of strings to draw to box */
-    this.lines = new StringList(this.lineW, this.maxLines);
+    this.lines = new StringList(boxCharW, boxCharH);
   }
 
-  /** Draws one line from lineStrs to canvas */
+  /** Draws single string from string list to canvas */
   drawStr(textColor, lineI, extraY=0, startChar=0, endChar=-1){
     if(endChar === -1) endChar = this.lines.strLen(lineI);
     let offsetX = 0;
     if(this.isTextCentered)
-      offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - this.lines.strLen(lineI));
+      offsetX = (NUM.CHAR_WIDTH/2)*(this.boxCharW - this.lines.strLen(lineI));
     ctx.fillStyle = textColor;
     ctx.fillText(
       this.lines.strGet(lineI).substring(startChar, endChar),
@@ -56,7 +62,7 @@ class BoxText extends Box{
   drawBar(barColor, lineI, startChar, endChar, extraStart=0, extraEnd=0){
     let offsetX = 0;
     if(this.isTextCentered)
-      offsetX = (NUM.CHAR_WIDTH/2)*(this.lineW - (endChar - startChar));
+      offsetX = (NUM.CHAR_WIDTH/2)*(this.boxCharW - (endChar - startChar));
     ctx.fillStyle = barColor;
     ctx.fillRect(
       this.x+NUM.CHAR_GAP + offsetX + startChar*NUM.CHAR_WIDTH - extraStart,
@@ -70,12 +76,12 @@ class BoxText extends Box{
 
 /** Can divide a line into different colors for comments and selection */
 class BoxCode extends BoxText{
-  constructor({x, y, lineW, maxLines}){
+  constructor({x, y, boxCharW, boxCharH}){
     super({
       x: x,
       y: y,
-      lineW: lineW,
-      maxLines: maxLines,
+      boxCharW: boxCharW,
+      boxCharH: boxCharH,
     });
     this.activeLine = null; // Indicates currently executing line
     this.executable = true; // True if the current line was just reached
@@ -83,7 +89,7 @@ class BoxCode extends BoxText{
 
   /** Draws text, executing line or selected text bars, and cursor */
   drawAllLinesAndBars(select){
-    for(let i=0; i<this.maxLines; i++){
+    for(let i=0; i<this.boxCharH; i++){
       let selectStart = -1;
       let selectEnd = -1;
       let cursorPos = -1;
@@ -110,7 +116,7 @@ class BoxCode extends BoxText{
         // Draws bar under currently executing line
         this.drawBar(
           (this.executable ? COLOR.BAR.RUNNING : COLOR.BAR.WAITING),
-          i, 0, this.lineW, NUM.CHAR_GAP, NUM.CHAR_GAP-2
+          i, 0, this.boxCharW, NUM.CHAR_GAP, NUM.CHAR_GAP-2
         );
         this.drawStr(COLOR.BLACK, i);
       }else if(commentStart === -1 && selectStart === -1 && cursorPos === -1){

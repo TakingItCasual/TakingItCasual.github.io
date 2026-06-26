@@ -63,8 +63,9 @@ class EditorSelection{
       },
       isActive: {
         value: () => {
-          let timeRemainder = (Date.now() - this.cursorBlink.time) % 800;
-          return timeRemainder < 400;
+          let timeRemainder =
+            (Date.now() - this.cursorBlink.time) % NUM.CURSOR_PERIOD;
+          return timeRemainder < Math.floor(NUM.CURSOR_PERIOD/2);
         },
       },
     });
@@ -101,7 +102,7 @@ class NodeContainer{
     this.nodesH = nodeTypes.length; // Height of table of nodes
 
     this.select = new EditorSelection();
-    /** Object reference for focused codeBox's string lines */
+    /** Object reference for focused codeBox's StringList */
     this.nodeLines = null;
     /** Object reference for selection cursor */
     this.cursor = this.select.cursor;
@@ -200,14 +201,15 @@ class NodeContainer{
     let bottomRightX = 0;
     let bottomRightY = 0;
     for(let i=0; i<this.nodes.length; i++){
-      // codeBox only exists within computeNodes
+      // codeBox only exists within ComputeNodes
       if(this.nodes[i].nodeType !== 1) continue;
       // Can't edit text in executing codeBox
       if(this.nodes[i].codeBox.activeLine !== null) continue;
 
+      let codeBox = this.nodes[i].codeBox;
       [topLeftX, topLeftY] = this.#nodeTopLeft(i);
-      bottomRightX = topLeftX + (NUM.NODE_WIDTH_MAIN+1)*NUM.CHAR_WIDTH;
-      bottomRightY = topLeftY + NUM.NODE_HEIGHT*NUM.LINE_HEIGHT;
+      bottomRightX = topLeftX + codeBox.boxCharW*NUM.CHAR_WIDTH;
+      bottomRightY = topLeftY + codeBox.boxCharH*NUM.LINE_HEIGHT;
       if(
         mPos.x.within(topLeftX, true, bottomRightX, false) &&
         mPos.y.within(topLeftY, true, bottomRightY, false)
@@ -245,10 +247,10 @@ class NodeContainer{
       let afterDel = this.#delSelectionInfo();
 
       if(afterDel === null) return;
-      if(afterDel.lineCount >= NUM.NODE_HEIGHT) return;
+      if(afterDel.lineCount >= this.nodeLines.maxLines) return;
 
       this.delSelection();
-    }else if(this.nodeLines.lineCount() >= NUM.NODE_HEIGHT){
+    }else if(this.nodeLines.lineCount() >= this.nodeLines.maxLines){
       return;
     }
 
@@ -425,13 +427,13 @@ class NodeContainer{
       if(!ALLOWED_CHARS.test(pastedLines[i])) return;
     }
     let zeroOrMoreSpaces = /^ *$/;
-    let lastEmpty = (zeroOrMoreSpaces.test(pastedLines[pastedLines.length-1]));
+    let isLastEmpty = zeroOrMoreSpaces.test(pastedLines[pastedLines.length-1]);
 
     let newCursorLineI = pastedLines.length-1; // Appended to later
     let newCursorCharI = null; // Set later
     if(this.select.range.isNull){
-      if(this.nodeLines.lineCount() + pastedLines.length - (lastEmpty ? 2 : 1) >
-        NUM.NODE_HEIGHT) return;
+      if(this.nodeLines.lineCount() + pastedLines.length -
+        (isLastEmpty ? 2 : 1) > this.nodeLines.maxLines) return;
 
       pastedLines[0] = this.nodeLines.strGet(this.cursor.lineI)
         .substring(0, this.cursor.charI) + pastedLines[0];
@@ -449,8 +451,8 @@ class NodeContainer{
       let afterDel = this.#delSelectionInfo();
 
       if(afterDel === null) return;
-      if(afterDel.lineCount + pastedLines.length - (lastEmpty ? 2 : 1) >
-        NUM.NODE_HEIGHT) return;
+      if(afterDel.lineCount + pastedLines.length -
+        (isLastEmpty ? 2 : 1) > this.nodeLines.maxLines) return;
 
       pastedLines[0] = this.nodeLines.strGet(this.select.range.lowerLineI)
         .substring(0, this.select.range.lowerCharI) + pastedLines[0];
@@ -469,8 +471,7 @@ class NodeContainer{
       this.delSelection();
     }
     // If on last node line and last pastedLine is empty, remove empty line
-    if(lastEmpty && newCursorLineI === NUM.NODE_HEIGHT){
-      if(!zeroOrMoreSpaces.test(pastedLines[pastedLines.length-1])) return;
+    if(isLastEmpty && newCursorLineI === this.nodeLines.maxLines){
       newCursorLineI -= 1;
       pastedLines.splice(-1);
       newCursorCharI = pastedLines[pastedLines.length-1].length;

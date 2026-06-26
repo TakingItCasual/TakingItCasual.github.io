@@ -31,6 +31,8 @@ const NUM = Object.freeze({
   get LINE_HEIGHT(){
     return this.CHAR_HEIGHT + this.CHAR_GAP;
   },
+  /** Length of time in milliseconds for cursor to blink */
+  CURSOR_PERIOD: 800,
 });
 
 /** Enum for directions */
@@ -78,4 +80,4 @@ const ALLOWED_CHARS = Object.freeze(/^[\x20-\x60\x7B-\x7E]*$/);
 /** HTML canvas of game screen */
 let canvas = document.getElementById("game");
 /** HTML canvas context */
-let ctx = canvas.getContext("2d");
+let ctx = canvas.getContext("2d", { alpha: false });

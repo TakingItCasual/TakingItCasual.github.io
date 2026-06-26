@@ -1,11 +1,11 @@
-/** Return whether number is with bounds (inclusive optional) */
+/** Return whether number is within bounds (inclusive optional) */
 if (!Number.prototype.within){
   Number.prototype.within = function (
-      lowerBound, lowerInclusive, upperBound, upperInclusive){
+      lowerBound, isLowerInclusive, upperBound, isUpperInclusive){
     if(this < lowerBound) return false;
-    if(this <= lowerBound && !lowerInclusive) return false;
+    if(this <= lowerBound && !isLowerInclusive) return false;
     if(this > upperBound) return false;
-    if(this >= upperBound && !upperInclusive) return false;
+    if(this >= upperBound && !isUpperInclusive) return false;
     return true;
   };
 }else{
